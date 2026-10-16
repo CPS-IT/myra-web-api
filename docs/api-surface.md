@@ -18,6 +18,44 @@ staged in `.cache/captures/`, promoted to `docs/captures/` per area). First run 
 Rules (docs/2.0-design.md): an area is implemented only after its reads are captured; writes
 without a harmless test are implemented from the spec, labelled *write unverified*.
 
+## Coverage (2.0)
+
+Of 218 operations: **116 verified** (captured against the real API, tested byte for byte
+against the captures), **40 unverified** (built from the manual/spec, never sent to Myra —
+`✓u` below), **2 not offered** (for Myra staff only), **60 not covered** (left out).
+
+**Unverified — use with care.** Their request shapes follow the documentation; how Myra
+really answers is not known. Each method says so in its docblock.
+
+| Area | Operations | Why no capture |
+|---|---|---|
+| Users, groups, permissions, tokens, API keys, passwords (v2) | 23 | never probed on a live account (access, lockout) |
+| Domains: create, auto update, delete; v1 pause, v2 environment | 6 | a delete removes every configuration |
+| SSL certificates: upload, update, v2 delete | 5 | a certificate goes live; also unverified whether Myra keeps the intermediate chain when an update leaves it out |
+| Organisation: contacts, note | 4 | organisation data of a live account |
+| DNS records: v2 `PUT …/load-balancing` | 1 | Myra answered HTTP 500 to the probe (load balancing works through the normal update) |
+| Domain verification: `check` | 1 | not probed |
+
+**Not covered — left out on purpose.** Not guessed from the spec and not stubbed with
+methods that throw: the captures showed often enough how far the documentation is from the
+real answers (missing `error` field, unpaged lists, `null` instead of `[]`), and a stub would
+look like API, fail only at runtime, and have to change its signature later — adding methods
+is a minor release, changing them is not.
+
+| Area | Operations | Why | What it would take |
+|---|---|---|---|
+| Tags (v2) | 23 | the account has no tags (empty lists) | one tag to capture |
+| SSL providers and requests (v2) | 14 | HTTP 403 for this account | an account with SSL provider access |
+| WAF rules (v2) | 6 | the account has none; a probe create (disabled, log only) was refused with 403 — WAF seems not booked | a domain with WAF |
+| Waiting room (v2) | 6 | `/waiting-rooms` answers 400 (only the feature flag was readable) | an account with waiting rooms |
+| Replication DNS (v2) | 5 | no zones (empty list) | one replication zone |
+| Rate limit (v1) | 4 | HTTP 403 for this account | an account with rate limit access |
+| Custom configurations (v2) | 2 | none in the account (empty list) | one configuration (set up by Myra's support) |
+
+Meanwhile a consumer stays on 1.x for these, or calls the API directly. Each area can be added
+in a minor release once a real answer is captured (`tests/Smoke/capture.php`, write probes in
+`tests/Smoke/write.php`).
+
 ## Domains
 
 _reads done; writes from the manual/spec (unverified, never probed): create, auto update, delete; v1 pause/resume, v2 environment_
