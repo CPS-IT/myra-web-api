@@ -145,6 +145,32 @@ final class EnvelopeTest extends TestCase
 
     #[TestWith([401])]
     #[TestWith([403])]
+    public function testAnErrorStringOn401Or403IsADenial(int $status): void
+    {
+        $this->expectException(AccessDeniedException::class);
+        $this->expectExceptionMessage(sprintf('Access denied for PUT %s (HTTP %d): Session has been revoked', self::URI, $status));
+
+        Envelope::parse(self::request(), new Response($status, ['Content-Type' => 'application/json'], '{"error":"Session has been revoked"}'));
+    }
+
+    #[TestWith([409])]
+    #[TestWith([400])]
+    #[TestWith([404])]
+    #[TestWith([200])]
+    public function testAnErrorStringOtherwiseIsARejectionWithItsCode(int $status): void
+    {
+        try {
+            Envelope::parse(self::request(), new Response($status, ['Content-Type' => 'application/json'], '{"error":"user_assigned_to_groups"}'));
+            self::fail('No exception thrown.');
+        } catch (RequestRejectedException $exception) {
+            self::assertSame(sprintf('Myra rejected PUT %s (HTTP %d): user_assigned_to_groups', self::URI, $status), $exception->getMessage());
+            self::assertCount(1, $exception->violations());
+            self::assertSame(['', 'user_assigned_to_groups', 'user_assigned_to_groups'], [$exception->violations()[0]->propertyPath(), $exception->violations()[0]->message(), $exception->violations()[0]->code()]);
+        }
+    }
+
+    #[TestWith([401])]
+    #[TestWith([403])]
     public function testDeniesOn401And403(int $status): void
     {
         $this->expectException(AccessDeniedException::class);

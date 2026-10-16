@@ -20,7 +20,9 @@ use Psr\Http\Message\ResponseInterface;
  * body decides, not the status (see docs/captures/README.md):
  *
  * - envelope with `error: true`        → RequestRejectedException (violations)
- * - `error` is a string                → AccessDeniedException (v2 without token, HTTP 401)
+ * - `error` is a string, HTTP 401/403 → AccessDeniedException (v2 without token, HTTP 401)
+ * - `error` is a string, other status  → RequestRejectedException, the string as violation code
+ *                                         (spec: 409 "user_assigned_to_groups" on a user delete)
  * - no envelope, HTTP 401/403          → AccessDeniedException (wrong credentials; v1 also
  *                                         for an unknown domain — empty or text/plain body)
  * - 5xx, other status, unreadable body → TransportException
@@ -58,7 +60,11 @@ final class Envelope
                 throw self::rejected($target, $status, new JsonObject($body));
             }
             if (is_string($error)) {
-                throw new AccessDeniedException(sprintf('Access denied for %s (HTTP %d): %s', $target, $status, $error));
+                if ($status === 401 || $status === 403) {
+                    throw new AccessDeniedException(sprintf('Access denied for %s (HTTP %d): %s', $target, $status, $error));
+                }
+                // e.g. 409 {"error": "user_assigned_to_groups"} (spec): a reason, not a denial
+                throw new RequestRejectedException(sprintf('Myra rejected %s (HTTP %d): %s', $target, $status, $error), [new Violation('', $error, $error)]);
             }
             if (self::isSuccess($status)) {
                 return new JsonObject($body);
