@@ -6,10 +6,9 @@ namespace Myracloud\WebApi\Endpoint;
 use DateTimeInterface;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\RequestOptions;
-use GuzzleHttp\Utils;
 use Myracloud\WebApi\Exception\EndpointException;
+use Myracloud\WebApi\Exception\UnexpectedResponseException;
 use Psr\Http\Message\ResponseInterface;
 
 abstract class AbstractEndpointV2
@@ -62,15 +61,20 @@ abstract class AbstractEndpointV2
     /**
      * @param ResponseInterface $response
      * @return array
+     * @throws UnexpectedResponseException
      */
     protected function handleResponse(ResponseInterface $response): array
     {
         if ($response->getStatusCode() != 200) {
-            throw new TransferException(
+            throw new UnexpectedResponseException(
                 'Invalid Response. ' . $response->getStatusCode() . ' ' . $response->getReasonPhrase()
             );
         }
 
-        return Utils::jsonDecode($response->getBody()->getContents(), true);
+        try {
+            return json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new UnexpectedResponseException('json_decode error: ' . $e->getMessage(), 0, $e);
+        }
     }
 }
