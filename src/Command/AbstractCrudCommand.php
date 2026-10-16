@@ -5,7 +5,6 @@ namespace Myracloud\WebApi\Command;
 
 use DateTimeImmutable;
 use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Exception\TransferException;
 use Myracloud\WebApi\Command\Enum\ExecutionTypeEnum;
 use Myracloud\WebApi\Exception\CommandException;
 use RuntimeException;
@@ -47,7 +46,7 @@ abstract class AbstractCrudCommand extends AbstractCommand
                 default => throw new CommandException('--operation must be one of ' . implode(',', ExecutionTypeEnum::values()))
             };
 
-        } catch (TransferException|GuzzleException $e) {
+        } catch (GuzzleException $e) {
             $this->handleTransferException($e, $output);
             return Command::FAILURE;
         } catch (CommandException $e) {

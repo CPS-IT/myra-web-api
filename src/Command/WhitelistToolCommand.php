@@ -5,7 +5,6 @@ namespace Myracloud\WebApi\Command;
 
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Exception\TransferException;
 use IPTools\IP;
 use IPTools\Network;
 use Myracloud\WebApi\Command\Enum\WhitelistFormatEnum;
@@ -72,7 +71,7 @@ TAG
                 WhitelistFormatEnum::NFTables => $output->writeln($this->renderNFTSet($data['list']))
             };
 
-        } catch (TransferException $e) {
+        } catch (GuzzleException $e) {
             $this->handleTransferException($e, $output);
 
             return self::FAILURE;

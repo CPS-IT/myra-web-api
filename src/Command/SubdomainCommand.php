@@ -6,7 +6,6 @@ namespace Myracloud\WebApi\Command;
 
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Exception\TransferException;
 use Myracloud\WebApi\Endpoint\SubdomainSetting;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputArgument;
@@ -65,7 +64,7 @@ EOF
             }
             $this->OpList($options, $output, $key);
 
-        } catch (TransferException $e) {
+        } catch (GuzzleException $e) {
             $this->handleTransferException($e, $output);
 
             return self::FAILURE;

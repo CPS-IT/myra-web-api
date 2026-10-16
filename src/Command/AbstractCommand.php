@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Myracloud\WebApi\Command;
 
-use GuzzleHttp\Exception\TransferException;
+use GuzzleHttp\Exception\GuzzleException;
 use Myracloud\WebApi\Endpoint\AbstractEndpoint;
 use Myracloud\WebApi\Exception\CommandException;
 use Myracloud\WebApi\WebApi;
@@ -100,10 +100,10 @@ abstract class AbstractCommand extends Command
 
 
     /**
-     * @param TransferException $e
+     * @param GuzzleException $e
      * @param OutputInterface   $output
      */
-    protected function handleTransferException(TransferException $e, OutputInterface $output): void
+    protected function handleTransferException(GuzzleException $e, OutputInterface $output): void
     {
         $output->writeln('<fg=red;options=bold>Error:</> ' . $e->getMessage());
         $output->writeln('<fg=red;options=bold>Error:</> Are you using the correct key/secret?');

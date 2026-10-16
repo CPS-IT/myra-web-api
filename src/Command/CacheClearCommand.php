@@ -5,7 +5,6 @@ namespace Myracloud\WebApi\Command;
 
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Exception\TransferException;
 use Myracloud\WebApi\Endpoint\AbstractEndpoint;
 use Myracloud\WebApi\Endpoint\CacheClear;
 use Symfony\Component\Console\Input\InputInterface;
@@ -53,7 +52,7 @@ TAG
             /** @var CacheClear $endpoint */
             $endpoint = $this->getEndpoint();
             $return   = $endpoint->clear($options['fqdn'], $options['fqdn'], $options['cleanupRule'], $options['recursive']);
-        } catch (TransferException $e) {
+        } catch (GuzzleException $e) {
             $this->handleTransferException($e, $output);
 
             return self::FAILURE;
