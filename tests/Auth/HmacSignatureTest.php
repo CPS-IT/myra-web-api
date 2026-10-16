@@ -61,6 +61,17 @@ final class HmacSignatureTest extends TestCase
         self::assertSame('application/json', $signed->getHeaderLine('Content-Type'));
     }
 
+    public function testSignsTheRequestsOwnContentType(): void
+    {
+        // vector from the spec script with CONTENT_TYPE="text/csv"
+        $request = new Request('POST', 'https://apiv2.myracloud.com/domain/1140/ip-filters/www.example.org/import?type=BLACKLIST', ['Content-Type' => 'text/csv'], '192.0.2.2/32,,__probe__');
+
+        $signed = self::signature()->authenticate($request);
+
+        self::assertSame('MYRA test-key:dEH8ZZgB1wlNrIBbDgUDAe0d7khS24aXAYNb8zU/1zEEqCgyArBbMFGd+3T5uAXL1/EE8F5WhYd4R4wh6fTReA==', $signed->getHeaderLine('Authorization'));
+        self::assertSame('text/csv', $signed->getHeaderLine('Content-Type'));
+    }
+
     public function testSignsTheMethodUpperCased(): void
     {
         $lower = self::signature()->authenticate(self::putRequest('put'));

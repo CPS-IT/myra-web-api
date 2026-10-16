@@ -19,9 +19,10 @@ declare(strict_types=1);
  * - v1 `recursive` not a boolean → the v2 wrong-type answer;
  * - paging (MYRA_EMULATOR_PAGE_SIZE cuts the captured lists), the echo of a cache clear
  *   (built like the captured ones) and the 404 "Not emulated" envelope;
- * - redirect writes are echoed in the captured shapes (captures 25–37) but stateless:
- *   nothing is stored, a stale `modified` is not detected; v2 redirects of www.example.com
- *   are the v1 capture's objects in a v2 envelope.
+ * - writes of per-vhost areas (redirects, IP filter) are echoed in the captured shapes but
+ *   stateless: nothing is stored, a stale `modified` is not detected; v2 lists of
+ *   www.example.com are the v1 capture's objects in a v2 envelope; the IP filter export is
+ *   built from the captured list.
  *
  * Authentication is checked independently of the package's own code: HMAC recomputed
  * after the v2 spec (docs/v2/openapi.json, info.description §2.1.2), or a Bearer token.
@@ -123,8 +124,16 @@ final class Emulator
 {
     /** The emulated account: domain name → id, as in the fixtures. */
     private const DOMAINS = ['example.com' => 1000, 'example.org' => 1140];
-    /** Vhosts with redirects → their (v1) capture. */
-    private const REDIRECTS = ['example.com' => 'v1/redirects/list-apex', 'www.example.com' => 'v1/redirects/list-www'];
+    /**
+     * Areas configured per vhost: fixture directory, object type, captured lists by vhost
+     * (vhosts not listed have none). Both v1 path names map here, and so do the v2 ones.
+     */
+    private const AREAS = [
+        'redirects' => ['dir' => 'redirects', 'objectType' => 'DnsRedirectVO', 'lists' => ['example.com' => 'list-apex', 'www.example.com' => 'list-www'], 'get' => 90392],
+        'ipfilter' => ['dir' => 'ipfilter', 'objectType' => 'IpFilterVO', 'lists' => ['example.com' => 'list-apex', 'www.example.com' => 'list-empty'], 'get' => 90393],
+    ];
+    private const V1_AREAS = ['redirects' => 'redirects', 'ipfilter' => 'ipfilter'];
+    private const V2_AREAS = ['redirects' => 'redirects', 'ip-filters' => 'ipfilter'];
 
     /**
      * @param array<string, string> $headers lower-cased names
@@ -177,7 +186,8 @@ final class Emulator
 
         // Independent of the package: the spec's algorithm, written out again.
         $date = $this->headers['date'] ?? '';
-        $signingString = implode('#', [md5($this->body), strtoupper($this->method), $this->uri, 'application/json', $date]);
+        // the request's own content type, as Myra does (captured: a CSV import signed over text/csv)
+        $signingString = implode('#', [md5($this->body), strtoupper($this->method), $this->uri, $this->headers['content-type'] ?? 'application/json', $date]);
         $dateKey = hash_hmac('sha256', $date, 'MYRA' . self::env('MYRA_EMULATOR_SECRET', 'test-secret'));
         $signingKey = hash_hmac('sha256', 'myra-api-request', $dateKey);
 
@@ -193,8 +203,8 @@ final class Emulator
                 => rawurldecode($m[1]) === 'example.com'
                     ? Answer::page('v1/dns-records/list', 'list', (int) $m[2])
                     : Answer::fixture('v1/errors/unknown-domain'),
-            preg_match('#^/redirects/([^/]+)(/(\d+))?$#', $route, $m) === 1
-                => $this->v1Redirects(rawurldecode($m[1]), isset($m[3]) ? (int) $m[3] : null),
+            preg_match('#^/(redirects|ipfilter)/([^/]+)(/(\d+))?$#', $route, $m) === 1
+                => $this->v1Vhost(self::V1_AREAS[$m[1]], rawurldecode($m[2]), isset($m[4]) ? (int) $m[4] : null),
             $this->method === 'PUT' && preg_match('#^/cacheClear/([^/]+)$#', $route, $m) === 1
                 => isset(self::DOMAINS[rawurldecode($m[1])])
                     ? $this->cacheClear('v1', rawurldecode($m[1]), 'targetObject')
@@ -211,8 +221,8 @@ final class Emulator
         return match (true) {
             $this->method === 'GET' && $route === '/domains'
                 => Answer::page('v2/domains/list', 'data', $page),
-            preg_match('#^/domain/(\d+)/redirects/([^/]+)(/(\d+))?$#', $route, $m) === 1
-                => $this->v2Redirects((int) $m[1], rawurldecode($m[2]), isset($m[4]) ? (int) $m[4] : null, $page),
+            preg_match('#^/domain/(\d+)/(redirects|ip-filters)/([^/]+)(/(\d+|export|import))?$#', $route, $m) === 1
+                => $this->v2Vhost(self::V2_AREAS[$m[2]], (int) $m[1], rawurldecode($m[3]), $m[5] ?? null, $page),
             preg_match('#^/domain/([^/]+)/(dns-records|cache-clear)$#', $route, $m) === 1
                 => $this->v2Domain($m[1], $m[2], $page),
             default => self::notEmulated($this->method, $route),
@@ -238,47 +248,84 @@ final class Emulator
         };
     }
 
-    private function v1Redirects(string $vhost, ?int $page): Answer
+    private function v1Vhost(string $area, string $vhost, ?int $page): Answer
     {
+        $config = self::AREAS[$area];
+        $list = $config['lists'][$vhost] ?? null;
+
         return match (true) {
-            $this->method === 'GET' && $page !== null => Answer::page(self::REDIRECTS[$vhost] ?? 'v1/redirects/list-empty', 'list', $page),
-            $this->method === 'PUT' => $this->redirectWritten('targetObject', null),
-            $this->method === 'POST' => $this->redirectWritten('targetObject', null),
+            $this->method === 'GET' && $page !== null => Answer::page($list !== null ? "v1/{$config['dir']}/$list" : 'v1/redirects/list-empty', 'list', $page),
+            $this->method === 'PUT' || $this->method === 'POST' => $this->written($config['objectType'], 'targetObject', null),
             // captured: JSON, but declared as text/html
             $this->method === 'DELETE' => new Answer(200, 'text/html; charset=UTF-8', ['error' => false, 'targetObject' => [json_decode($this->body, true)], 'violationList' => []]),
-            default => self::notEmulated($this->method, '/redirects/' . $vhost),
+            default => self::notEmulated($this->method, "/$area/$vhost"),
         };
     }
 
-    private function v2Redirects(int $domainId, string $vhost, ?int $id, int $page): Answer
+    private function v2Vhost(string $area, int $domainId, string $vhost, ?string $tail, int $page): Answer
     {
+        $config = self::AREAS[$area];
         $name = array_search($domainId, self::DOMAINS, true);
-        if ($name === false || !isset(self::REDIRECTS[$vhost])) {
+        if ($name === false || ($vhost !== $name && !str_ends_with($vhost, '.' . $name)) || !in_array($vhost, ['example.com', 'www.example.com'], true)) {
             return Answer::fixture($name === false ? 'v2/errors/unknown-domain-id' : 'v2/redirects/unknown-vhost');
         }
+        $list = $config['lists'][$vhost]; // every area lists both emulated vhosts
+        $id = $tail !== null && preg_match('/^\d+$/', $tail) === 1 ? (int) $tail : null;
 
         return match (true) {
-            $this->method === 'GET' && $id === null => $vhost === 'example.com'
-                ? Answer::page('v2/redirects/list-apex', 'data', $page)
-                : Answer::page(self::REDIRECTS[$vhost], 'list', $page)->rename('list', 'data'),
-            $this->method === 'GET' => $id === 90392 ? Answer::fixture('v2/redirects/get') : Answer::fixture('v2/redirects/unknown-vhost'),
-            $this->method === 'POST' && $id === null => $this->redirectWritten('data', null, 201),
-            $this->method === 'PUT' && $id !== null => $this->redirectWritten('data', $id),
+            $this->method === 'GET' && $tail === null => $vhost === 'example.com'
+                ? Answer::page("v2/{$config['dir']}/$list", 'data', $page)
+                : Answer::page("v1/{$config['dir']}/$list", 'list', $page)->rename('list', 'data'),
+            $this->method === 'GET' && $id !== null => $id === $config['get'] ? Answer::fixture("v2/{$config['dir']}/get") : Answer::fixture('v2/redirects/unknown-vhost'),
+            $this->method === 'GET' && $tail === 'export' => new Answer(200, 'text/csv; charset=UTF-8', $vhost === 'example.com' ? self::exportOf('v2/ipfilter/list-apex') : "IP,Expires on,Comments\n"),
+            $this->method === 'POST' && $tail === 'import' => $this->import(),
+            $this->method === 'POST' && $tail === null => $this->written($config['objectType'], 'data', null, 201),
+            $this->method === 'PUT' && $id !== null => $this->written($config['objectType'], 'data', $id),
             $this->method === 'DELETE' && $id !== null => new Answer(204, null, ''),
-            default => self::notEmulated($this->method, '/domain/' . $domainId . '/redirects/' . $vhost),
+            default => self::notEmulated($this->method, "/domain/$domainId/$area/$vhost"),
         };
     }
 
     /**
-     * Echo of a redirect write: the sent object with id and a new modified, in the captured shape.
+     * CSV import as captured: HTTP 201, `error: false`, one violation per invalid line.
      */
-    private function redirectWritten(string $key, ?int $id, int $status = 200): Answer
+    private function import(): Answer
+    {
+        $violations = [];
+        foreach (explode("\n", trim($this->body)) as $line) {
+            $ip = explode(',', $line)[0];
+            if ($line !== '' && @inet_pton(explode('/', $ip)[0]) === false) {
+                $violations[] = ['propertyPath' => 'value', 'message' => 'Please enter a valid IP-Range'];
+            }
+        }
+
+        return new Answer(201, 'application/json', ['error' => false, 'violationList' => $violations, 'warningList' => [], 'data' => []]);
+    }
+
+    private static function exportOf(string $fixture): string
+    {
+        $body = Answer::fixture($fixture)->body;
+        $csv = "IP,Expires on,Comments\n";
+        foreach (is_array($body) && is_array($body['data'] ?? null) ? $body['data'] : [] as $entry) {
+            if (is_array($entry)) {
+                $columns = array_map(static fn(mixed $v): string => is_string($v) ? $v : '', [$entry['value'] ?? '', $entry['expireDate'] ?? '', $entry['comment'] ?? '']);
+                $csv .= implode(',', $columns) . "\n";
+            }
+        }
+
+        return $csv;
+    }
+
+    /**
+     * Echo of a write: the sent object with id and a new modified, in the captured shape.
+     */
+    private function written(string $objectType, string $key, ?int $id, int $status = 200): Answer
     {
         $redirect = json_decode($this->body, true);
         if (!is_array($redirect)) {
             return Answer::fixture(($key === 'data' ? 'v2' : 'v1') . '/errors/malformed-body');
         }
-        $redirect = ['objectType' => 'DnsRedirectVO'] + $redirect;
+        $redirect = ['objectType' => $objectType] + $redirect;
         $redirect['id'] = $id ?? (is_int($redirect['id'] ?? null) ? $redirect['id'] : 4711);
         $redirect['created'] ??= '2026-10-16T12:00:00+0200';
         $redirect['modified'] = '2026-10-16T12:00:0' . (is_string($redirect['modified'] ?? null) ? '1' : '0') . '+0200';
@@ -346,7 +393,7 @@ $uri = is_string($_SERVER['REQUEST_URI'] ?? null) ? $_SERVER['REQUEST_URI'] : '/
 $body = (string) file_get_contents('php://input');
 // Only the headers the emulator needs (the built-in server puts Content-Length without HTTP_).
 $headers = [];
-foreach (['authorization' => 'HTTP_AUTHORIZATION', 'date' => 'HTTP_DATE', 'content-length' => 'CONTENT_LENGTH'] as $name => $key) {
+foreach (['authorization' => 'HTTP_AUTHORIZATION', 'date' => 'HTTP_DATE', 'content-length' => 'CONTENT_LENGTH', 'content-type' => 'CONTENT_TYPE'] as $name => $key) {
     if (is_string($_SERVER[$key] ?? null)) {
         $headers[$name] = $_SERVER[$key];
     }

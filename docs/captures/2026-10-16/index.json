@@ -388,5 +388,185 @@
         "status": 200,
         "finding": "list after the delete: the probe is gone",
         "file": "v2-0037-redirect-verify.json"
+    },
+    {
+        "case": "38",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/ipfilter/example.com/1",
+        "status": 200,
+        "finding": "IP filter of the apex: IpFilterVO, per vhost like redirects",
+        "file": "v1-0038-v1 by domain-en-rapi-ipfilter-example-com-1.json"
+    },
+    {
+        "case": "39",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/ipfilter/www.example.com/1",
+        "status": 200,
+        "finding": "a vhost without entries: empty list",
+        "file": "v1-0039-v1 by subdomain-en-rapi-ipfilter-www-example-com-1.json"
+    },
+    {
+        "case": "40",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/ip-filters/example.com",
+        "status": 200,
+        "finding": "same IpFilterVO as v1",
+        "file": "v2-0040-v2 by vhost-domain-1000-ip-filters-example-com.json"
+    },
+    {
+        "case": "41",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/ip-filters/example.com/90393",
+        "status": 200,
+        "finding": "get by id: one-element data list",
+        "file": "v2-0041-v2 by vhost-domain-1000-ip-filters-example-com-90393.json"
+    },
+    {
+        "case": "42",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/ip-filters/example.com/export",
+        "status": 200,
+        "finding": "export: text/csv with the columns IP, Expires on, Comments",
+        "file": "v2-0042-v2 by vhost-domain-1000-ip-filters-example-com-export.json"
+    },
+    {
+        "case": "43",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/ip-filters/example.org",
+        "status": 403,
+        "finding": "a vHostName that is no vhost: 403 'The entity does not exist.'",
+        "file": "v2-0043-v2 by vhost-domain-1140-ip-filters-example-org.json"
+    },
+    {
+        "case": "44",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "PUT",
+        "path": "/en/rapi/ipfilter/map.example.org",
+        "status": 200,
+        "finding": "v1 create (probe: disabled blacklist entry for 192.0.2.1)",
+        "file": "v1-0044-ipfilter-create.json"
+    },
+    {
+        "case": "45",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/ipfilter/map.example.org",
+        "status": 200,
+        "finding": "v1 update with id + modified",
+        "file": "v1-0045-ipfilter-update.json"
+    },
+    {
+        "case": "46",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/ipfilter/map.example.org",
+        "status": 200,
+        "finding": "stale modified: HTTP 200 + error: true",
+        "file": "v1-0046-ipfilter-update-stale.json"
+    },
+    {
+        "case": "47",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/domain/1140/ip-filters/map.example.org",
+        "status": 201,
+        "finding": "v2 create: HTTP 201",
+        "file": "v2-0047-ipfilter-create.json"
+    },
+    {
+        "case": "48",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1140/ip-filters/map.example.org/90002",
+        "status": 200,
+        "finding": "v2 update: PUT \u2026/{id}",
+        "file": "v2-0048-ipfilter-update.json"
+    },
+    {
+        "case": "49",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1140/ip-filters/map.example.org/90002",
+        "status": 400,
+        "finding": "stale modified: HTTP 400",
+        "file": "v2-0049-ipfilter-update-stale.json"
+    },
+    {
+        "case": "50",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/ip-filters/map.example.org/export?type=BLACKLIST",
+        "status": 200,
+        "finding": "export filtered by ?type=BLACKLIST",
+        "file": "v2-0050-ipfilter-export.json"
+    },
+    {
+        "case": "51",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/domain/1140/ip-filters/map.example.org/import?type=BLACKLIST",
+        "status": 201,
+        "finding": "import with one invalid line: HTTP 201 and error: false (the spec says true), the line as violation",
+        "file": "v2-0051-ipfilter-import-token.json"
+    },
+    {
+        "case": "52",
+        "apiVersion": "v2",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/domain/1140/ip-filters/map.example.org/import?type=BLACKLIST",
+        "status": 201,
+        "finding": "import signed with HMAC over Content-Type text/csv: works",
+        "file": "v2-0052-ipfilter-import-hmac.json"
+    },
+    {
+        "case": "53",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "DELETE",
+        "path": "/en/rapi/ipfilter/map.example.org",
+        "status": 200,
+        "finding": "v1 delete: body {id, modified}",
+        "file": "v1-0053-ipfilter-cleanup.json"
+    },
+    {
+        "case": "54",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/ip-filters/map.example.org",
+        "status": 200,
+        "finding": "list after the imports: expireDate appears only when set",
+        "file": "v2-0054-ipfilter-cleanup.json"
+    },
+    {
+        "case": "55",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "DELETE",
+        "path": "/domain/1140/ip-filters/map.example.org/90002",
+        "status": 204,
+        "finding": "v2 delete: HTTP 204, empty",
+        "file": "v2-0055-ipfilter-cleanup.json"
     }
 ]

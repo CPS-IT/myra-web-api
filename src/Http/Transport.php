@@ -16,6 +16,8 @@ use Myracloud\WebApi\Exception\TransportException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
 /**
@@ -74,6 +76,55 @@ final readonly class Transport
      */
     public function send(string $method, string $path, array $query = [], ?array $body = null): JsonObject
     {
+        return Envelope::parse(...$this->exchange($method, $path, $query, $body === null ? null : self::encode($body), 'application/json'));
+    }
+
+    /**
+     * A request with a body that is not JSON (e.g. CSV), answered with an envelope.
+     *
+     * @param array<string, scalar> $query
+     *
+     * @throws RequestRejectedException
+     * @throws AccessDeniedException
+     * @throws TransportException
+     */
+    public function sendRaw(string $method, string $path, array $query, string $body, string $contentType): JsonObject
+    {
+        return Envelope::parse(...$this->exchange($method, $path, $query, $body, $contentType));
+    }
+
+    /**
+     * A GET answered with text instead of an envelope (CSV export, zone file); failures still
+     * come as envelopes or the usual denials.
+     *
+     * @param array<string, scalar> $query
+     *
+     * @throws RequestRejectedException
+     * @throws AccessDeniedException
+     * @throws TransportException
+     */
+    public function fetchText(string $path, array $query = []): string
+    {
+        [$request, $response] = $this->exchange('GET', $path, $query, null, 'application/json');
+        $status = $response->getStatusCode();
+        $type = $response->getHeaderLine('Content-Type');
+        if ($status >= 200 && $status < 300 && !str_contains(strtolower($type), 'json')) {
+            return (string) $response->getBody();
+        }
+        Envelope::parse($request, $response); // throws for every failure
+
+        throw new TransportException(sprintf('%s %s: expected text, got %s (HTTP %d).', 'GET', $request->getUri(), $type === '' ? 'no content type' : $type, $status));
+    }
+
+    /**
+     * @param array<string, scalar> $query
+     *
+     * @return array{RequestInterface, ResponseInterface}
+     *
+     * @throws TransportException
+     */
+    private function exchange(string $method, string $path, array $query, ?string $body, string $contentType): array
+    {
         $uri = $this->baseUri . '/' . ltrim($path, '/');
         if ($query !== []) {
             $uri .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
@@ -81,11 +132,11 @@ final readonly class Transport
 
         $request = $this->requestFactory->createRequest($method, $uri)
             ->withHeader('Accept', 'application/json')
-            ->withHeader('Content-Type', 'application/json');
+            ->withHeader('Content-Type', $contentType);
         if ($body !== null) {
-            $request = $request->withBody($this->streamFactory->createStream(self::encode($body)));
+            $request = $request->withBody($this->streamFactory->createStream($body));
         }
-        // Last, on the final request: an HMAC signature covers method, path, query and body.
+        // Last, on the final request: an HMAC signature covers method, path, query, content type and body.
         $request = $this->authentication->authenticate($request);
 
         try {
@@ -94,7 +145,7 @@ final readonly class Transport
             throw new TransportException(sprintf('%s %s: %s', $method, $uri, $exception->getMessage()), $exception);
         }
 
-        return Envelope::parse($request, $response);
+        return [$request, $response];
     }
 
     /**

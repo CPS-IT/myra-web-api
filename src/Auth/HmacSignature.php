@@ -17,18 +17,21 @@ use SensitiveParameterValue;
  * The algorithm is the one in the v2 spec (docs/v2/openapi.json, info.description §2.1.2)
  * and in 1.x, byte for byte:
  *
- *     signing string = md5(body) # METHOD # path?query # application/json # date
+ *     signing string = md5(body) # METHOD # path?query # content type # date
  *     date key       = HMAC-SHA256(date, "MYRA" . secret)               (hex)
  *     signing key    = HMAC-SHA256("myra-api-request", date key)       (hex)
  *     signature      = base64(HMAC-SHA512(signing string, signing key)) (binary)
  *     Authorization: MYRA {key}:{signature}
+ *
+ * The content type is the request's own (default and almost always `application/json`; CSV
+ * for the v2 IP filter import) — the spec's script treats it as a variable too.
  *
  * The date is taken per request: a signature is valid for that request only, so there is
  * nothing to cache or to renew.
  */
 final readonly class HmacSignature implements Authentication
 {
-    private const CONTENT_TYPE = 'application/json';
+    private const DEFAULT_CONTENT_TYPE = 'application/json';
 
     private string $apiKey;
     /** Hidden from var_dump, var_export, print_r and stack traces; serialize() throws. */
@@ -61,11 +64,13 @@ final readonly class HmacSignature implements Authentication
     public function authenticate(RequestInterface $request): RequestInterface
     {
         $date = $this->clock->now()->format(DATE_RFC3339);
+        $contentType = $request->getHeaderLine('Content-Type');
+        $contentType = $contentType === '' ? self::DEFAULT_CONTENT_TYPE : $contentType;
         $signingString = implode('#', [
             md5($this->readBody($request)),
             strtoupper($request->getMethod()),
             self::signedPath($request->getUri()),
-            self::CONTENT_TYPE,
+            $contentType,
             $date,
         ]);
 
@@ -76,7 +81,7 @@ final readonly class HmacSignature implements Authentication
         $signature = base64_encode(hash_hmac('sha512', $signingString, $signingKey, true));
 
         return $request
-            ->withHeader('Content-Type', self::CONTENT_TYPE)
+            ->withHeader('Content-Type', $contentType)
             ->withHeader('Date', $date)
             ->withHeader('Authorization', 'MYRA ' . $this->apiKey . ':' . $signature);
     }

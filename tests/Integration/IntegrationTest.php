@@ -15,6 +15,7 @@ use Myracloud\WebApi\Exception\DomainNotFoundException;
 use Myracloud\WebApi\Exception\RequestRejectedException;
 use Myracloud\WebApi\Model\DnsRecord;
 use Myracloud\WebApi\Model\Domain;
+use Myracloud\WebApi\Model\IpFilter;
 use Myracloud\WebApi\Model\Redirect;
 use Myracloud\WebApi\V1;
 use Myracloud\WebApi\V2;
@@ -155,6 +156,29 @@ final class IntegrationTest extends TestCase
                 : ['POST /domain/1000/redirects/www.example.com', 'PUT /domain/1000/redirects/www.example.com/4711', 'DELETE /domain/1000/redirects/www.example.com/4711'],
             $writes,
         );
+        self::assertAllAuthenticated();
+    }
+
+    /**
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testManagesIpFilters(string $version, Closure $auth): void
+    {
+        $client = self::client($version, $auth());
+        $filters = $client->ipFilters();
+
+        self::assertCount(7, $filters->list('example.com'));
+        self::assertSame([], $filters->list('www.example.com'));
+        $created = $filters->create(new IpFilter('www.example.com', IpFilter::TYPE_BLACKLIST, '192.0.2.1/32', enabled: false));
+        $updated = $filters->update($created->withComment('c'));
+        $filters->delete($updated);
+        self::assertSame('c', $updated->comment());
+        if ($client instanceof V2\Client) {
+            self::assertStringStartsWith("IP,Expires on,Comments\n192.0.2.123/32,", $client->ipFilters()->export('example.com'));
+            self::assertSame(['value: Please enter a valid IP-Range'], array_map('strval', $client->ipFilters()->import('www.example.com', IpFilter::TYPE_BLACKLIST, "192.0.2.2/32,,\nnot-an-ip,,\n")));
+        }
         self::assertAllAuthenticated();
     }
 

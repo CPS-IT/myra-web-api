@@ -38,6 +38,16 @@ final class Fixture
     }
 
     /**
+     * A request body the capture sent as text (e.g. CSV).
+     */
+    public static function requestText(string $name): string
+    {
+        $body = self::load($name)['request']['body'];
+
+        return is_string($body) ? $body : throw new LogicException($name . ': the request body is no text');
+    }
+
+    /**
      * A synthetic list answer, for paging beyond what the captures contain.
      *
      * @param string $key v1 `list`, v2 `data`

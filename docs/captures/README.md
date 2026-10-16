@@ -60,6 +60,24 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 35 | v2 | `GET /domain/1140/redirects/map.example.org` | 200 | list after the update |
 | 36 | v2 | `DELETE /domain/1140/redirects/map.example.org/90003` | 204 | v2 delete: HTTP 204, empty body, no Content-Type |
 | 37 | v2 | `GET /domain/1140/redirects/map.example.org` | 200 | list after the delete: the probe is gone |
+| 38 | v1 | `GET /en/rapi/ipfilter/example.com/1` | 200 | IP filter of the apex: IpFilterVO, per vhost like redirects |
+| 39 | v1 | `GET /en/rapi/ipfilter/www.example.com/1` | 200 | a vhost without entries: empty list |
+| 40 | v2 | `GET /domain/1000/ip-filters/example.com` | 200 | same IpFilterVO as v1 |
+| 41 | v2 | `GET /domain/1000/ip-filters/example.com/90393` | 200 | get by id: one-element data list |
+| 42 | v2 | `GET /domain/1000/ip-filters/example.com/export` | 200 | export: text/csv with the columns IP, Expires on, Comments |
+| 43 | v2 | `GET /domain/1140/ip-filters/example.org` | 403 | a vHostName that is no vhost: 403 'The entity does not exist.' |
+| 44 | v1 | `PUT /en/rapi/ipfilter/map.example.org` | 200 | v1 create (probe: disabled blacklist entry for 192.0.2.1) |
+| 45 | v1 | `POST /en/rapi/ipfilter/map.example.org` | 200 | v1 update with id + modified |
+| 46 | v1 | `POST /en/rapi/ipfilter/map.example.org` | 200 | stale modified: HTTP 200 + error: true |
+| 47 | v2 | `POST /domain/1140/ip-filters/map.example.org` | 201 | v2 create: HTTP 201 |
+| 48 | v2 | `PUT /domain/1140/ip-filters/map.example.org/90002` | 200 | v2 update: PUT …/{id} |
+| 49 | v2 | `PUT /domain/1140/ip-filters/map.example.org/90002` | 400 | stale modified: HTTP 400 |
+| 50 | v2 | `GET /domain/1140/ip-filters/map.example.org/export?type=BLACKLIST` | 200 | export filtered by ?type=BLACKLIST |
+| 51 | v2 | `POST /domain/1140/ip-filters/map.example.org/import?type=BLACKLIST` | 201 | import with one invalid line: HTTP 201 and error: false (the spec says true), the line as violation |
+| 52 | v2 | `POST /domain/1140/ip-filters/map.example.org/import?type=BLACKLIST` | 201 | import signed with HMAC over Content-Type text/csv: works |
+| 53 | v1 | `DELETE /en/rapi/ipfilter/map.example.org` | 200 | v1 delete: body {id, modified} |
+| 54 | v2 | `GET /domain/1140/ip-filters/map.example.org` | 200 | list after the imports: expireDate appears only when set |
+| 55 | v2 | `DELETE /domain/1140/ip-filters/map.example.org/90002` | 204 | v2 delete: HTTP 204, empty |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.

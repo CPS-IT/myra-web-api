@@ -35,11 +35,13 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V1\DnsRecords::class)]
 #[CoversClass(V1\CacheClearing::class)]
 #[CoversClass(V1\Redirects::class)]
+#[CoversClass(V1\IpFilters::class)]
 #[CoversClass(V2\Client::class)]
 #[CoversClass(V2\Domains::class)]
 #[CoversClass(V2\DnsRecords::class)]
 #[CoversClass(V2\CacheClearing::class)]
 #[CoversClass(V2\Redirects::class)]
+#[CoversClass(V2\IpFilters::class)]
 #[CoversClass(V2\DomainIdResolver::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\HmacSignature::class)]
@@ -54,6 +56,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(\Myracloud\WebApi\Model\DomainName::class)]
 #[UsesClass(\Myracloud\WebApi\Model\Violation::class)]
 #[UsesClass(\Myracloud\WebApi\Model\Redirect::class)]
+#[UsesClass(\Myracloud\WebApi\Model\IpFilter::class)]
 #[UsesClass(\Myracloud\WebApi\Exception\RequestRejectedException::class)]
 final class ContractTest extends TestCase
 {
@@ -162,6 +165,24 @@ final class ContractTest extends TestCase
         self::assertSame(
             [[90392, 'example.com', '/path-5', 'https://example.com/path-6', 'redirect', 'exact', 1, true, '2018-11-01T14:41:24+0100']],
             array_map(static fn(\Myracloud\WebApi\Model\Redirect $r): array => [$r->id(), $r->subdomain(), $r->source(), $r->destination(), $r->type(), $r->matchingType(), $r->sort(), $r->isEnabled(), $r->modified()], $redirects),
+        );
+    }
+
+    /**
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testListsTheIpFiltersOfAVhost(string $version, Closure $auth): void
+    {
+        $http = self::answers($version, 'ipfilter/list-apex');
+
+        $filters = self::client($version, $auth(), $http)->ipFilters()->list('example.com');
+
+        self::assertCount(7, $filters);
+        self::assertSame(
+            [90393, 'example.com', 'WHITELIST', '192.0.2.123/32', true, '2018-07-11T13:57:24+0200'],
+            [$filters[0]->id(), $filters[0]->subdomain(), $filters[0]->type(), $filters[0]->value(), $filters[0]->isEnabled(), $filters[0]->modified()],
         );
     }
 

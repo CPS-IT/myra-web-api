@@ -34,6 +34,8 @@ use Psr\Http\Message\StreamInterface;
 #[UsesClass(Envelope::class)]
 #[UsesClass(JsonObject::class)]
 #[UsesClass(TransportException::class)]
+#[UsesClass(\Myracloud\WebApi\Exception\RequestRejectedException::class)]
+#[UsesClass(\Myracloud\WebApi\Model\Violation::class)]
 final class TransportTest extends TestCase
 {
     private FakeHttpClient $http;
@@ -189,6 +191,64 @@ final class TransportTest extends TestCase
 
         self::assertSame('request', $request->getHeaderLine('X-Factory'));
         self::assertSame('stream:{"a":1}', (string) $request->getBody());
+    }
+
+    public function testSendsARawBodyWithItsContentType(): void
+    {
+        $this->transport()->sendRaw('POST', 'domain/1/ip-filters/www.example.com/import', ['type' => 'BLACKLIST'], "192.0.2.1/32,,\n", 'text/csv');
+        $request = $this->http->lastRequest();
+
+        self::assertSame('POST https://apiv2.myracloud.com/domain/1/ip-filters/www.example.com/import?type=BLACKLIST', $request->getMethod() . ' ' . $request->getUri());
+        self::assertSame('text/csv', $request->getHeaderLine('Content-Type'));
+        self::assertSame('application/json', $request->getHeaderLine('Accept'));
+        self::assertSame("192.0.2.1/32,,\n", (string) $request->getBody());
+    }
+
+    #[TestWith(['text/csv; charset=UTF-8', 200])]
+    #[TestWith(['text/plain', 299])]
+    #[TestWith(['', 200])]
+    public function testFetchesText(string $type, int $status): void
+    {
+        $http = (new FakeHttpClient())->queue(new Response($status, $type === '' ? [] : ['Content-Type' => $type], "IP,Expires on,Comments\n"));
+
+        $text = (new Transport(new BearerToken('t'), 'https://apiv2.myracloud.com', $http))->fetchText('x/export', ['type' => 'BLACKLIST']);
+
+        self::assertSame("IP,Expires on,Comments\n", $text);
+        self::assertSame('GET https://apiv2.myracloud.com/x/export?type=BLACKLIST', $http->lastRequest()->getMethod() . ' ' . $http->lastRequest()->getUri());
+    }
+
+    public function testFetchingTextStillReportsFailures(): void
+    {
+        $http = (new FakeHttpClient())->queue(new Response(403, ['Content-Type' => 'application/json'], '{"error":true,"violationList":[{"message":"The entity does not exist."}]}'));
+
+        $this->expectException(\Myracloud\WebApi\Exception\RequestRejectedException::class);
+        $this->expectExceptionMessage('The entity does not exist.');
+
+        (new Transport(new BearerToken('t'), 'https://apiv2.myracloud.com', $http))->fetchText('x/export');
+    }
+
+    #[TestWith([403, 'text/html'])]
+    #[TestWith([199, 'text/csv'])]
+    #[TestWith([300, 'text/csv'])]
+    public function testFetchingTextOutside2xxIsNoText(int $status, string $type): void
+    {
+        $http = (new FakeHttpClient())->queue(new Response($status, ['Content-Type' => $type], 'IP'));
+
+        $this->expectException(\Myracloud\WebApi\Exception\MyraException::class);
+
+        (new Transport(new BearerToken('t'), 'https://apiv2.myracloud.com', $http))->fetchText('x/export');
+    }
+
+    #[TestWith(['application/json'])]
+    #[TestWith(['Application/JSON; charset=UTF-8'])]
+    public function testJsonInsteadOfTextIsUnexpected(string $type): void
+    {
+        $http = (new FakeHttpClient())->queue(new Response(200, ['Content-Type' => $type], '{"error":false}'));
+
+        $this->expectException(TransportException::class);
+        $this->expectExceptionMessage('GET https://apiv2.myracloud.com/x/export: expected text, got ' . $type . ' (HTTP 200).');
+
+        (new Transport(new BearerToken('t'), 'https://apiv2.myracloud.com', $http))->fetchText('x/export');
     }
 
     public function testTheDefaultClientIsGuzzleWithTimeouts(): void

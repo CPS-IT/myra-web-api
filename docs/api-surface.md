@@ -81,21 +81,21 @@ _done: sets the pattern for per-vhost areas and writes (docs/2.0-design.md, "Are
 
 ## IP filter
 
-_v2 export = text/csv_
+_done; reads and writes captured (38–55), incl. v2 export (CSV) and import (CSV, also signed with HMAC)_
 
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
-| v1 | `GET /{lang}/rapi/ipfilter/{domain}/{page}` | read | R | – |
-| v1 | `PUT /{lang}/rapi/ipfilter/{domain}` | write | – | – |
-| v1 | `POST /{lang}/rapi/ipfilter/{domain}` | write | – | – |
-| v1 | `DELETE /{lang}/rapi/ipfilter/{domain}` | write | – | – |
-| v2 | `GET /domain/{domainId}/ip-filters/{name}/{id}` | read | R | – |
-| v2 | `PUT /domain/{domainId}/ip-filters/{name}/{id}` | write | – | – |
-| v2 | `DELETE /domain/{domainId}/ip-filters/{name}/{id}` | write | – | – |
-| v2 | `GET /domain/{domainId}/ip-filters/{vHostName}` | read | R | – |
-| v2 | `GET /domain/{domainId}/ip-filters/{vHostName}/export` | read | R | – |
-| v2 | `POST /domain/{domainId}/ip-filters/{name}` | write | – | – |
-| v2 | `POST /domain/{domainId}/ip-filters/{vHostName}/import` | write | – | – |
+| v1 | `GET /{lang}/rapi/ipfilter/{domain}/{page}` | read | R | ✓ |
+| v1 | `PUT /{lang}/rapi/ipfilter/{domain}` | write | W | ✓ |
+| v1 | `POST /{lang}/rapi/ipfilter/{domain}` | write | W | ✓ |
+| v1 | `DELETE /{lang}/rapi/ipfilter/{domain}` | write | W | ✓ |
+| v2 | `GET /domain/{domainId}/ip-filters/{name}/{id}` | read | R | ✓ |
+| v2 | `PUT /domain/{domainId}/ip-filters/{name}/{id}` | write | W | ✓ |
+| v2 | `DELETE /domain/{domainId}/ip-filters/{name}/{id}` | write | W | ✓ |
+| v2 | `GET /domain/{domainId}/ip-filters/{vHostName}` | read | R | ✓ |
+| v2 | `GET /domain/{domainId}/ip-filters/{vHostName}/export` | read | R | ✓ |
+| v2 | `POST /domain/{domainId}/ip-filters/{name}` | write | W | ✓ |
+| v2 | `POST /domain/{domainId}/ip-filters/{vHostName}/import` | write | W | ✓ |
 
 ## Cache settings
 

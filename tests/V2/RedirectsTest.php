@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(V2\Redirects::class)]
+#[UsesClass(V2\IpFilters::class)]
 #[CoversClass(V2\DomainIdResolver::class)]
 #[UsesClass(V2\Client::class)]
 #[UsesClass(V2\Domains::class)]

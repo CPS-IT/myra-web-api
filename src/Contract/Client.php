@@ -19,4 +19,6 @@ interface Client
     public function cacheClear(): CacheClearing;
 
     public function redirects(): Redirects;
+
+    public function ipFilters(): IpFilters;
 }

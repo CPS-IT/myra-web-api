@@ -29,6 +29,7 @@ final readonly class Client implements Contract\Client
     private DnsRecords $dnsRecords;
     private CacheClearing $cacheClear;
     private Redirects $redirects;
+    private IpFilters $ipFilters;
 
     /**
      * @param string $baseUri e.g. of a local emulator
@@ -47,6 +48,7 @@ final readonly class Client implements Contract\Client
         $this->dnsRecords = new DnsRecords($transport, $this->domainIds);
         $this->cacheClear = new CacheClearing($transport, $this->domainIds);
         $this->redirects = new Redirects($transport, $this->domainIds);
+        $this->ipFilters = new IpFilters($transport, $this->domainIds);
     }
 
     public function domains(): Domains
@@ -67,6 +69,11 @@ final readonly class Client implements Contract\Client
     public function redirects(): Redirects
     {
         return $this->redirects;
+    }
+
+    public function ipFilters(): IpFilters
+    {
+        return $this->ipFilters;
     }
 
     /**

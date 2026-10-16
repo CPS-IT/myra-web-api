@@ -22,6 +22,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V2\DnsRecords::class)]
 #[CoversClass(V2\CacheClearing::class)]
 #[UsesClass(V2\Redirects::class)]
+#[UsesClass(V2\IpFilters::class)]
 #[CoversClass(V2\DomainIdResolver::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\HmacSignature::class)]
