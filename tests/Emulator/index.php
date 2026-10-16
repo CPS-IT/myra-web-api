@@ -27,6 +27,8 @@ declare(strict_types=1);
  * - maintenance: the account has none, so both vhosts answer the probe's captured list;
  * - DNS record writes are echoed in the captured shapes (stateless); the dedicated v2 load
  *   balancing PUT answers the captured HTTP 500;
+ * - subdomains: the account list ignores paging (captured) and filters like Myra; a verification
+ *   check answers 409 DOMAIN_VERIFICATION_ALREADY_VERIFIED (spec; the account's domains are verified);
  * - statistics: the captured answers whatever the query or period; v2 dashboard: example.org
  *   answers the quiet domain's captures, histogram charts other than total-* are unknown;
  * - subdomain settings: v2 settings of www.example.com are the v1 capture, `?flat` answers
@@ -258,6 +260,18 @@ final class Emulator
                 => Answer::fixture('v2/statistics/query'),
             preg_match('#^/statistics/([a-z-]+)/\d+/\d+(/.*)?$#', $route, $m) === 1
                 => $this->statistics($m[1], $m[2] ?? ''),
+            $this->method === 'GET' && $route === '/subdomains'
+                => $this->subdomains(),
+            $this->method === 'GET' && preg_match('#^/domain/(\d+)/subdomains$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
+                => Answer::page('v2/subdomains/list-domain', 'data', $page),
+            preg_match('#^/domains/(\d+)(/verification(/check)?)?$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
+                => match (true) {
+                    $this->method === 'GET' && !isset($m[2]) => Answer::fixture('v2/domains/get'),
+                    $this->method === 'GET' && !isset($m[3]) => Answer::fixture('v2/domains/verification'),
+                    // assumed from the spec: every domain of the emulated account is verified
+                    $this->method === 'POST' && isset($m[3]) => new Answer(409, 'application/json', ['error' => true, 'violationList' => [['propertyPath' => '', 'message' => 'The domain is already verified.', 'code' => 'DOMAIN_VERIFICATION_ALREADY_VERIFIED']], 'warningList' => []]),
+                    default => self::notEmulated($this->method, $route),
+                },
             $this->method === 'GET' && $route === '/ip-ranges'
                 => Answer::page('v2/ip-ranges/list', 'data', $page),
             preg_match('#^/domain/(\d+)/(redirects|ip-filters)/([^/]+)(/(\d+|export|import))?$#', $route, $m) === 1
@@ -499,6 +513,26 @@ final class Emulator
             $statistic === 'histogram' => Answer::fixture('v2/statistics/histogram-unknown-chart'),
             default => self::notEmulated($this->method, "/statistics/$statistic"),
         };
+    }
+
+    /**
+     * The account's subdomains, unpaged as captured; `search` filters by name (`filterType=exact`: the whole name).
+     */
+    private function subdomains(): Answer
+    {
+        $answer = Answer::fixture('v2/subdomains/list');
+        $body = is_array($answer->body) ? $answer->body : [];
+        $search = $this->query()['search'] ?? null;
+        if (is_string($search)) {
+            $exact = ($this->query()['filterType'] ?? null) === 'exact';
+            $body['data'] = array_values(array_filter(
+                is_array($body['data'] ?? null) ? $body['data'] : [],
+                static fn(mixed $s): bool => is_array($s) && is_string($s['label'] ?? null) && ($exact ? $s['label'] === $search : str_contains($s['label'], $search)),
+            ));
+            $body['count'] = count($body['data']);
+        }
+
+        return new Answer(200, 'application/json', $body);
     }
 
     /**

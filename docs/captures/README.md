@@ -169,6 +169,17 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 144 | v2 | `POST /statistics/histogram/1792051200/1792058399/total-requests/hourly/0/1` | 200 | {group: name → {graphData: {name, max, sum, data}}} per vhost + ALL-{domainId}; data null for vhosts without requests |
 | 145 | v2 | `POST /statistics/top-urls/1792051200/1792058399` | 400 | a domain not in the account: HTTP 400, INTERNAL_ERROR envelope |
 | 146 | v2 | `POST /statistics/histogram/1792051200/1792058399/redacted-137/hourly/0/1` | 403 | an unknown chart: HTTP 403 "The entity does not exist." |
+| 147 | v2 | `GET /subdomains` | 200 | all vhosts of the account (no objectType): label = FQDN, name/value with dot, domainName/domainId, isActive, paused, access, permissions |
+| 148 | v2 | `GET /subdomains?page=2&pageSize=2` | 200 | the account list IGNORES paging: page 2, pageSize 2 in the answer, yet all 7 entries |
+| 149 | v2 | `GET /subdomains?search=www` | 200 | ?search= matches parts of the name |
+| 150 | v2 | `GET /subdomains?search=example.com&filterType=exact` | 200 | ?search=…&filterType=exact: only that name |
+| 151 | v2 | `GET /domain/1000/subdomains` | 200 | the vhosts of one domain |
+| 152 | v2 | `GET /domain/1000/subdomains?page=2&pageSize=2` | 200 | per domain, paging works |
+| 153 | v2 | `GET /domain/1000/subdomains?search=www` | 200 | ?search= per domain |
+| 154 | v2 | `GET /domain/1000/subdomains?active=true&isActive=true` | 200 | ?active=true&isActive=true: adds a field active, same entries (all are active) |
+| 155 | v2 | `GET /domains/1000` | 200 | a domain by id: DomainVO with permissions, label, verified, environment |
+| 156 | v2 | `GET /domains/1000/verification` | 200 | verification status: verified, recordNames, conflictingNames, foreignDescendantsExist |
+| 157 | v2 | `GET /domains/1000/foreign-descendants` | 403 | foreign-descendants: HTTP 403, empty body (this account) |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.

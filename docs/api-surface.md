@@ -8,7 +8,8 @@ Generated once, maintained by hand. Status per operation:
   account (no object shape yet — needs one entry created), `R✗` captured but withheld by the
   leak check (anonymisation open), `403`/`400` not accessible for this account, `W` write
   captured (Postman, by the user)
-- **impl**: `–` not yet, `✓` implemented and tested, `✓u` implemented from manual/spec, write unverified
+- **impl**: `–` not yet, `✓` implemented and tested, `✓u` implemented from manual/spec, write unverified,
+  `agents only` for Myra's own staff (spec), not offered
 
 Reads are captured with `tests/Smoke/capture.php` (GET only, anonymised in memory, leak-checked,
 staged in `.cache/captures/`, promoted to `docs/captures/` per area). First run 2026-10-16:
@@ -27,7 +28,7 @@ _done: list/page_
 | v1 | `PUT /{lang}/rapi/domains` | write | – | – |
 | v1 | `POST /{lang}/rapi/domains` | write | – | – |
 | v1 | `DELETE /{lang}/rapi/domains` | write | – | – |
-| v2 | `GET /domains/{id}` | read | R | – |
+| v2 | `GET /domains/{id}` | read | R | ✓ |
 | v2 | `PUT /domains/{id}` | write | – | – |
 | v2 | `DELETE /domains/{id}` | write | – | – |
 | v2 | `GET /domains/{id}/bind/{ipTarget}` | read | R✗ | – |
@@ -232,21 +233,23 @@ _v2 ops are in Domain (bind, bind-raw); raw = text_
 
 ## Subdomains / vhosts (v2)
 
+_done (147–154); the account list ignores paging, per domain it works; `search` (+ `filterType=exact`)_
+
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
-| v2 | `GET /domain/{domainId}/subdomains` | read | R | – |
-| v2 | `GET /subdomains` | read | R | – |
+| v2 | `GET /domain/{domainId}/subdomains` | read | R | ✓ |
+| v2 | `GET /subdomains` | read | R | ✓ |
 
 ## Domain verification (v2)
 
-_verification/check = write_
+_done (156); verification/check = write, built from the spec (unverified); PUT and foreign-descendants are for Myra agents only (spec) — not offered_
 
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
-| v2 | `GET /domains/{id}/verification` | read | R | – |
-| v2 | `PUT /domains/{id}/verification` | write | – | – |
-| v2 | `POST /domains/{id}/verification/check` | write | – | – |
-| v2 | `GET /domains/{id}/foreign-descendants` | read | 403 | – |
+| v2 | `GET /domains/{id}/verification` | read | R | ✓ |
+| v2 | `PUT /domains/{id}/verification` | write | – | agents only |
+| v2 | `POST /domains/{id}/verification/check` | write | – | ✓u |
+| v2 | `GET /domains/{id}/foreign-descendants` | read | 403 | agents only |
 
 ## Custom configurations (v2)
 

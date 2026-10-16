@@ -1478,5 +1478,115 @@
         "status": 403,
         "finding": "an unknown chart: HTTP 403 \"The entity does not exist.\"",
         "file": "v2-0146-statistics-13-statistics-histogram.json"
+    },
+    {
+        "case": "147",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/subdomains",
+        "status": 200,
+        "finding": "all vhosts of the account (no objectType): label = FQDN, name/value with dot, domainName/domainId, isActive, paused, access, permissions",
+        "file": "v2-0147-Subdomains-011-subdomains.json"
+    },
+    {
+        "case": "148",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/subdomains?page=2&pageSize=2",
+        "status": 200,
+        "finding": "the account list IGNORES paging: page 2, pageSize 2 in the answer, yet all 7 entries",
+        "file": "v2-0148-probe-subdomains-page-2-pageSize-2.json"
+    },
+    {
+        "case": "149",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/subdomains?search=www",
+        "status": 200,
+        "finding": "?search= matches parts of the name",
+        "file": "v2-0149-probe-subdomains-search-www.json"
+    },
+    {
+        "case": "150",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/subdomains?search=example.com&filterType=exact",
+        "status": 200,
+        "finding": "?search=\u2026&filterType=exact: only that name",
+        "file": "v2-0150-probe-subdomains-search-example-com-filterType-exact.json"
+    },
+    {
+        "case": "151",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/subdomains",
+        "status": 200,
+        "finding": "the vhosts of one domain",
+        "file": "v2-0151-v2-by-domain-054-domain-1000-subdomains.json"
+    },
+    {
+        "case": "152",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/subdomains?page=2&pageSize=2",
+        "status": 200,
+        "finding": "per domain, paging works",
+        "file": "v2-0152-probe-domain-1000-subdomains-page-2-pageSize-2.json"
+    },
+    {
+        "case": "153",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/subdomains?search=www",
+        "status": 200,
+        "finding": "?search= per domain",
+        "file": "v2-0153-probe-domain-1000-subdomains-search-www.json"
+    },
+    {
+        "case": "154",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/subdomains?active=true&isActive=true",
+        "status": 200,
+        "finding": "?active=true&isActive=true: adds a field active, same entries (all are active)",
+        "file": "v2-0154-probe-domain-1000-subdomains-active-true-isActive-true.json"
+    },
+    {
+        "case": "155",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domains/1000",
+        "status": 200,
+        "finding": "a domain by id: DomainVO with permissions, label, verified, environment",
+        "file": "v2-0155-v2-by-domain-046-domains-1000.json"
+    },
+    {
+        "case": "156",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domains/1000/verification",
+        "status": 200,
+        "finding": "verification status: verified, recordNames, conflictingNames, foreignDescendantsExist",
+        "file": "v2-0156-v2-by-domain-051-domains-1000-verification.json"
+    },
+    {
+        "case": "157",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domains/1000/foreign-descendants",
+        "status": 403,
+        "finding": "foreign-descendants: HTTP 403, empty body (this account)",
+        "file": "v2-0157-v2-by-domain-052-domains-1000-foreign-descendants.json"
     }
 ]

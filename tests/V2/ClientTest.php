@@ -30,6 +30,8 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(V2\IpRanges::class)]
 #[UsesClass(V2\Statistics::class)]
 #[UsesClass(V2\MaintenanceTemplates::class)]
+#[UsesClass(V2\Subdomains::class)]
+#[UsesClass(V2\DomainVerifications::class)]
 #[CoversClass(V2\DomainIdResolver::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\HmacSignature::class)]
@@ -239,6 +241,10 @@ final class ClientTest extends TestCase
         self::assertSame($client->subdomainSettings(), $client->subdomainSettings());
         self::assertSame($client->maintenances(), $client->maintenances());
         self::assertSame($client->errorPages(), $client->errorPages());
+        self::assertSame($client->ipRanges(), $client->ipRanges());
+        self::assertSame($client->statistics(), $client->statistics());
+        self::assertSame($client->subdomains(), $client->subdomains());
+        self::assertSame($client->domainVerifications(), $client->domainVerifications());
         self::assertSame($client->maintenanceTemplates(), $client->maintenanceTemplates());
     }
 

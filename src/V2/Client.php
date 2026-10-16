@@ -37,6 +37,8 @@ final readonly class Client implements Contract\Client
     private IpRanges $ipRanges;
     private Statistics $statistics;
     private MaintenanceTemplates $maintenanceTemplates;
+    private Subdomains $subdomains;
+    private DomainVerifications $domainVerifications;
 
     /**
      * @param string $baseUri e.g. of a local emulator
@@ -63,6 +65,8 @@ final readonly class Client implements Contract\Client
         $this->ipRanges = new IpRanges($transport);
         $this->statistics = new Statistics($transport);
         $this->maintenanceTemplates = new MaintenanceTemplates($transport, $this->domainIds);
+        $this->subdomains = new Subdomains($transport, $this->domainIds);
+        $this->domainVerifications = new DomainVerifications($transport, $this->domainIds);
     }
 
     public function domains(): Domains
@@ -126,6 +130,22 @@ final readonly class Client implements Contract\Client
     public function maintenanceTemplates(): MaintenanceTemplates
     {
         return $this->maintenanceTemplates;
+    }
+
+    /**
+     * The subdomains (vhosts) Myra serves (v2 only).
+     */
+    public function subdomains(): Subdomains
+    {
+        return $this->subdomains;
+    }
+
+    /**
+     * Whether Myra has verified the domains (v2 only).
+     */
+    public function domainVerifications(): DomainVerifications
+    {
+        return $this->domainVerifications;
     }
 
     /**

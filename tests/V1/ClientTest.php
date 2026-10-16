@@ -188,6 +188,8 @@ final class ClientTest extends TestCase
         self::assertSame($client->subdomainSettings(), $client->subdomainSettings());
         self::assertSame($client->maintenances(), $client->maintenances());
         self::assertSame($client->errorPages(), $client->errorPages());
+        self::assertSame($client->ipRanges(), $client->ipRanges());
+        self::assertSame($client->statistics(), $client->statistics());
     }
 
     private function client(): Client

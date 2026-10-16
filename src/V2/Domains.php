@@ -10,7 +10,7 @@ use Myracloud\WebApi\Model\Domain;
 use Myracloud\WebApi\Model\Page;
 
 /**
- * `GET /domains`, `?page={page}` from page 2 on.
+ * `GET /domains`, `?page={page}` from page 2 on; `GET /domains/{id}`.
  */
 final readonly class Domains implements Contract\Domains
 {
@@ -22,6 +22,17 @@ final readonly class Domains implements Contract\Domains
     public function list(): array
     {
         return Page::collect($this->page(...));
+    }
+
+    /**
+     * One domain with everything Myra has on it (permissions, verified, environment, … in
+     * raw()); the id from list() or {@see Client::domainId()}.
+     *
+     * @throws \Myracloud\WebApi\Exception\MyraException
+     */
+    public function get(int $id): Domain
+    {
+        return Domain::fromJson($this->transport->send('GET', 'domains/' . $id)->first('data'));
     }
 
     public function page(int $page): Page

@@ -122,6 +122,44 @@ final class IntegrationTest extends TestCase
     }
 
     /**
+     * v2 only: subdomains (account and per domain, paged), a domain by id, its verification.
+     *
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('v2Clients')]
+    public function testReadsSubdomainsAndVerification(Closure $auth): void
+    {
+        $client = new V2\Client($auth(), self::server()->baseUri());
+
+        self::assertCount(7, $client->subdomains()->list());
+        self::assertCount(6, $client->subdomains()->list('example.com'));
+        self::assertContains('GET /domain/1000/subdomains?page=3', self::requests());
+        self::assertSame(['www.example.com'], array_map(static fn(\Myracloud\WebApi\Model\Subdomain $s): string => $s->name(), $client->subdomains()->search('www')));
+        self::assertCount(1, $client->subdomains()->search('example.com', true));
+        self::assertSame('example.com', $client->domains()->get(1000)->name());
+        self::assertTrue($client->domainVerifications()->status('example.com')->verified());
+        try {
+            $client->domainVerifications()->check('example.com');
+            self::fail('No exception thrown.');
+        } catch (\Myracloud\WebApi\Exception\RequestRejectedException $exception) {
+            self::assertSame('DOMAIN_VERIFICATION_ALREADY_VERIFIED', $exception->violations()[0]->code());
+        }
+        self::assertAllAuthenticated();
+    }
+
+    /**
+     * @return iterable<string, array{Closure(): Authentication}>
+     */
+    public static function v2Clients(): iterable
+    {
+        foreach (self::clients() as $name => [$version, $auth]) {
+            if ($version === 'v2') {
+                yield $name => [$auth];
+            }
+        }
+    }
+
+    /**
      * The shared query in both versions; the dashboard statistics with v2.
      *
      * @param 'v1'|'v2' $version
