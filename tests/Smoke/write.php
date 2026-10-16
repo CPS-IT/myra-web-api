@@ -17,6 +17,8 @@ declare(strict_types=1);
  *
  * Probes:
  * - redirects: a DISABLED redirect of the exact path /__probe__/redirect;
+ * - settings: the vhost's OWN subdomain settings, read and posted back UNCHANGED (a no-op
+ *   whether Myra replaces or merges them), read again and compared — restored if different;
  * - cachesettings: a DISABLED rule for the exact path /__probe__/ (ttl -1 = no cache);
  * - ipfilter: a DISABLED blacklist entry for 192.0.2.1 (documentation range, never a real
  *   client); v2 import of 192.0.2.2 / 192.0.2.3 (blacklist, documentation range) plus one
@@ -25,6 +27,7 @@ declare(strict_types=1);
 
 namespace Myracloud\WebApi\Tests\Smoke;
 
+use ArrayObject;
 use Closure;
 use GuzzleHttp\Psr7\HttpFactory;
 use Myracloud\WebApi\Auth\BearerToken;
@@ -37,6 +40,7 @@ use Myracloud\WebApi\Model\Redirect;
 use Myracloud\WebApi\V1;
 use Myracloud\WebApi\V2;
 use Psr\Http\Message\RequestInterface;
+use stdClass;
 use Throwable;
 
 require __DIR__ . '/../../vendor/autoload.php';
@@ -94,7 +98,7 @@ if ($vhosts === []) {
     exit(2);
 }
 $vhost = $vhosts[0];
-$guard = new WriteGuard($vhost, $domainId, ['redirects', 'ipfilter', 'ip-filters', 'cacheSettings', 'cache-settings'], ['import']);
+$guard = new WriteGuard($vhost, $domainId, ['redirects', 'ipfilter', 'ip-filters', 'cacheSettings', 'cache-settings', 'subdomainSetting', 'settings'], ['import']);
 $shownVhost = $anonymizer->value($vhost);
 $shownId = $anonymizer->value($domainId, 'id');
 printf("Target: %s (domain %s)\n", is_string($shownVhost) ? $shownVhost : '?', is_int($shownId) ? (string) $shownId : '?');
@@ -118,7 +122,8 @@ $record = static function (string $area, string $version, string $step) use ($ht
                 'method' => $request->getMethod(),
                 'path' => $anonymizer->path($request->getUri()->getPath() . ($request->getUri()->getQuery() === '' ? '' : '?' . $request->getUri()->getQuery())),
                 'contentType' => $request->getHeaderLine('Content-Type'),
-                'body' => $requestBody === '' ? null : (is_array($decodedRequest) ? $anonymizer->value($decodedRequest) : $anonymizer->text($requestBody)),
+                // an empty JSON object stays an object ({}, not [] as a PHP array would encode)
+                'body' => $requestBody === '' ? null : (trim($requestBody) === '{}' ? new stdClass() : (is_array($decodedRequest) ? $anonymizer->value($decodedRequest) : $anonymizer->text($requestBody))),
             ],
             'response' => [
                 'status' => $response->getStatusCode(),
@@ -245,6 +250,51 @@ if (in_array('ipfilter', $areas, true)) {
 }
 
 $leftovers = array_filter($leftovers, 'is_string');
+// ------------------------------------------------------------------ subdomain settings
+
+if (in_array('settings', $areas, true)) {
+    foreach (['v1' => $v1, 'v2' => $v2] as $version => $client) {
+        $settings = $client->subdomainSettings();
+        /** @var ArrayObject<string, array<string, mixed>> $state 'original': the own settings read before the write */
+        $state = new ArrayObject();
+        // the same settings, whatever order Myra sends them in
+        $same = static function (array $a, array $b): bool {
+            ksort($a);
+            ksort($b);
+
+            return $a === $b;
+        };
+        $run('settings', $version, static function () use ($settings, $vhost, $version, $record, $say, $state): void {
+            $before = $settings->get($vhost);
+            $record('settings', $version, 'get');
+            $settings->effective($vhost);
+            $record('settings', $version, 'get-flat');
+            $state['original'] = $before->own();
+            $say(sprintf('own settings: %d — posting them back unchanged', count($before->own())));
+            $settings->update($vhost, $before->own());
+            $record('settings', $version, 'update-unchanged');
+        }, static function () use ($settings, $vhost, $version, $record, $say, $state, $same): array {
+            $original = $state['original'] ?? null;
+            if ($original === null) {
+                return []; // nothing was written
+            }
+            $now = $settings->get($vhost)->own();
+            if ($same($now, $original)) {
+                $record('settings', $version, 'verify');
+
+                return [];
+            }
+            $say('!! own settings changed — restoring the original');
+            $settings->update($vhost, $original);
+            $record('settings', $version, 'restore');
+
+            $now = $settings->get($vhost)->own(); // read again after the restore
+
+            return $same($now, $original) ? [] : ["$version settings of the vhost (could not restore)"];
+        });
+    }
+}
+
 // ------------------------------------------------------------------ cache settings
 
 if (in_array('cachesettings', $areas, true)) {

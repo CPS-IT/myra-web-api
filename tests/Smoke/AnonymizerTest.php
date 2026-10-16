@@ -80,6 +80,7 @@ final class AnonymizerTest extends TestCase
         self::assertSame('/en/rapi/domains/1', $this->anonymizer->path('/en/rapi/domains/1'));
         $this->anonymizer->seed(['id' => 1], ['id' => 5]);
         self::assertSame('/en/rapi/domains/1?recordTypes=A,AAAA', $this->anonymizer->path('/en/rapi/domains/1?recordTypes=A,AAAA'));
+        self::assertSame('/en/rapi/domains/1?flat&page=2', $this->anonymizer->path('/en/rapi/domains/1?flat&page=2'));
     }
 
     public function testKeepsUpperCasePhrasesOfDocumentedWordsButNotProse(): void

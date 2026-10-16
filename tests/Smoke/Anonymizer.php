@@ -118,7 +118,11 @@ final class Anonymizer
         }
         $pairs = [];
         foreach (explode('&', $query) as $pair) {
-            [$name, $value] = array_pad(explode('=', $pair, 2), 2, '');
+            if (!str_contains($pair, '=')) {
+                $pairs[] = $pair; // a flag such as "flat"
+                continue;
+            }
+            [$name, $value] = explode('=', $pair, 2);
             $values = array_map(fn(string $item): string => preg_match('/^\d+$/', $item) === 1 ? $item : $this->string(rawurldecode($item), $name), explode(',', $value));
             $pairs[] = $name . '=' . implode(',', $values);
         }
