@@ -1,11 +1,12 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Myracloud\WebApi\Exception;
 
-use Exception;
+use Throwable;
 
-class MyraException extends Exception
-{
-
-}
+/**
+ * Every exception this package throws implements this interface; consumers catch only this.
+ */
+interface MyraException extends Throwable {}

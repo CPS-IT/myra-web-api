@@ -1,9 +1,8 @@
-/.idea/
 /vendor/
-/old.php
-/config.php
-/tests/Config.php
-/.vagrant
-/export_*
-/tests/.cache
-/tests/report
+/.cache/
+/.idea/
+/.php-cs-fixer.php
+/phpunit.xml
+/phpstan.neon
+/.smoke.env
+/composer.lock
