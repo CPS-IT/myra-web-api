@@ -1868,5 +1868,15 @@
         "status": 200,
         "finding": "organisation notes: one OrganizationNoteVO without fields (none set)",
         "file": "v2-0185-probe-organization-notes.json"
+    },
+    {
+        "case": "186",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/domain/1140/map.example.org/waf-rules",
+        "status": 403,
+        "finding": "probe WAF rule (disabled, only /__probe__/waf, log only) on the unused domain: HTTP 403, EMPTY body \u2014 although the user holds DomainWafRule CREATE; nothing was created (verified). Likely WAF not available for that domain; not retried",
+        "file": "v2-0186-waf-failed.json"
     }
 ]

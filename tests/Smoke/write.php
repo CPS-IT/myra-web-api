@@ -27,6 +27,9 @@ declare(strict_types=1);
  * - settings: the vhost's OWN subdomain settings, read and posted back UNCHANGED (a no-op
  *   whether Myra replaces or merges them), read again and compared — restored if different;
  * - cachesettings: a DISABLED rule for the exact path /__probe__/ (ttl -1 = no cache);
+ * - waf (v2): a DISABLED WAF rule that matches only the exact path /__probe__/waf and only
+ *   logs (processNext: later rules still run) — deleted at once and the run aborted if Myra
+ *   reports it enabled; the guard allows its update and delete only once it exists;
  * - ipfilter: a DISABLED blacklist entry for 192.0.2.1 (documentation range, never a real
  *   client); v2 import of 192.0.2.2 / 192.0.2.3 (blacklist, documentation range) plus one
  *   invalid line — imported entries are enabled, but block only an address that never exists.
@@ -41,12 +44,15 @@ use Myracloud\WebApi\Auth\BearerToken;
 use Myracloud\WebApi\Auth\HmacSignature;
 use Myracloud\WebApi\Exception\MyraException;
 use Myracloud\WebApi\Exception\RequestRejectedException;
+use Myracloud\WebApi\Http\JsonObject;
+use Myracloud\WebApi\Http\Transport;
 use Myracloud\WebApi\Model\CacheSetting;
 use Myracloud\WebApi\Model\DnsRecord;
 use Myracloud\WebApi\Model\ErrorPage;
 use Myracloud\WebApi\Model\IpFilter;
 use Myracloud\WebApi\Model\Maintenance;
 use Myracloud\WebApi\Model\MaintenanceTemplate;
+use Myracloud\WebApi\Model\Page;
 use Myracloud\WebApi\Model\Redirect;
 use Myracloud\WebApi\V1;
 use Myracloud\WebApi\V2;
@@ -110,7 +116,8 @@ if ($vhosts === []) {
     exit(2);
 }
 $vhost = $vhosts[0];
-$guard = new WriteGuard($vhost, $domainId, ['redirects', 'ipfilter', 'ip-filters', 'cacheSettings', 'cache-settings', 'subdomainSetting', 'settings', 'maintenance', 'maintenances'], ['import'], $domain, ['dnsRecords', 'dns-records', 'maintenance-templates', 'errorpages']);
+$wafRules = "domain/$domainId/" . rawurlencode($vhost) . '/waf-rules';
+$guard = new WriteGuard($vhost, $domainId, ['redirects', 'ipfilter', 'ip-filters', 'cacheSettings', 'cache-settings', 'subdomainSetting', 'settings', 'maintenance', 'maintenances'], ['import'], $domain, ['dnsRecords', 'dns-records', 'maintenance-templates', 'errorpages'], ["POST /$wafRules"]);
 $shownVhost = $anonymizer->value($vhost);
 $shownId = $anonymizer->value($domainId, 'id');
 printf("Target: %s (domain %s)\n", is_string($shownVhost) ? $shownVhost : '?', is_int($shownId) ? (string) $shownId : '?');
@@ -490,6 +497,68 @@ if (in_array('cachesettings', $areas, true)) {
             return array_values(array_map(static fn(CacheSetting $s): string => 'cache setting ' . $s->id(), array_filter($settings->list($vhost), $isProbe)));
         });
     }
+}
+
+// ------------------------------------------------------------------ WAF rules (v2 only; no package API yet: raw)
+
+if (in_array('waf', $areas, true)) {
+    $raw = new Transport($token, 'https://apiv2.myracloud.com', $http);
+    // one object of `data`, whether Myra sends a list or an object
+    $one = static function (JsonObject $answer): JsonObject {
+        $data = $answer->toArray()['data'] ?? null;
+
+        return is_array($data) && array_is_list($data) ? $answer->first('data') : $answer->object('data');
+    };
+    $probeRules = static fn(): array => array_values(array_filter(
+        Page::collect(static fn(int $page): Page => Page::fromJson($raw->send('GET', "domain/$domainId/waf-rules", $page === 1 ? [] : ['page' => $page]), 'data', static fn(JsonObject $rule): JsonObject => $rule)),
+        static fn(JsonObject $rule): bool => ($rule->toArray()['name'] ?? null) === '__probe__',
+    ));
+    $run('waf', 'v2', static function () use ($raw, $one, $wafRules, $domainId, $vhost, $record, $say, &$guard): void {
+        $rule = [
+            'ruleType' => 'domain', 'name' => '__probe__', 'description' => '__probe__ (myra-web-api): disabled, only /__probe__/waf, logs only',
+            'logIdentifier' => '__probe__', 'subDomainName' => $vhost, 'direction' => 'in', 'sort' => 9999,
+            'enabled' => false, 'processNext' => true,
+            'conditions' => [['name' => 'url', 'matchingType' => 'EXACT', 'value' => '/__probe__/waf']],
+            'actions' => [['name' => 'Log', 'type' => 'log']],
+        ];
+        $created = $one($raw->send('POST', $wafRules, body: $rule));
+        $record('waf', 'v2', 'create');
+        $id = $created->int('id');
+        $guard = $guard->allowing("PUT /$wafRules/$id", "DELETE /domain/waf-rules/$id");
+        if (($created->toArray()['enabled'] ?? true) !== false) {
+            $raw->send('DELETE', "domain/waf-rules/$id");
+            $record('waf', 'v2', 'emergency-delete');
+            throw new RuntimeException('Myra reported the probe WAF rule ENABLED — deleted at once.');
+        }
+        $raw->send('GET', "domain/$domainId/waf-rules");
+        $record('waf', 'v2', 'list');
+        $raw->send('GET', "domain/$domainId/waf-rules/list", ['subDomain' => $vhost]);
+        $record('waf', 'v2', 'list-for-vhost');
+        $raw->send('GET', "domain/waf-rules/$id");
+        $record('waf', 'v2', 'get');
+        $updated = $one($raw->send('PUT', "$wafRules/$id", body: ['description' => '__probe__ (myra-web-api): updated'] + $created->toArray()));
+        $record('waf', 'v2', 'update');
+        if (($updated->toArray()['enabled'] ?? true) !== false) {
+            throw new RuntimeException('Myra reported the probe WAF rule ENABLED after the update.');
+        }
+        try {
+            $raw->send('PUT', "$wafRules/$id", body: ['description' => '__probe__ (myra-web-api): stale'] + $created->toArray());
+            $say('!! an update with the stale modified was ACCEPTED (no optimistic lock)');
+        } catch (RequestRejectedException $e) {
+            $say('stale modified rejected: ' . $e->getMessage());
+        }
+        $record('waf', 'v2', 'update-stale');
+        $raw->send('DELETE', "domain/waf-rules/$id");
+        $record('waf', 'v2', 'delete');
+    }, static function () use ($raw, $probeRules, &$guard): array {
+        foreach ($probeRules() as $rule) {
+            $id = $rule->int('id');
+            $guard = $guard->allowing("DELETE /domain/waf-rules/$id");
+            $raw->send('DELETE', "domain/waf-rules/$id");
+        }
+
+        return array_map(static fn(JsonObject $rule): string => 'WAF rule ' . $rule->int('id'), $probeRules());
+    });
 }
 
 echo $leftovers === [] ? "No leftovers.\n" : 'LEFTOVERS — delete by hand: ' . implode(', ', $leftovers) . "\n";

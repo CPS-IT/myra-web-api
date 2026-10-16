@@ -16,6 +16,8 @@ final readonly class WriteGuard
      * @param list<string> $areas path names of the probed areas per vhost, e.g. ['redirects']
      * @param list<string> $actions allowed last path segments besides an id, e.g. ['import']
      * @param list<string> $domainAreas path names of probed areas per domain (zone), e.g. ['dnsRecords', 'dns-records']
+     * @param list<string> $exact single writes allowed as "METHOD /path", e.g. the create of a
+     *                            probe — its update and delete are added once it exists ({@see allowing()})
      */
     public function __construct(
         private string $vhost,
@@ -24,12 +26,25 @@ final readonly class WriteGuard
         private array $actions = [],
         private string $domain = '',
         private array $domainAreas = [],
+        private array $exact = [],
     ) {}
+
+    /**
+     * The same guard, also allowing these "METHOD /path" writes — e.g. the delete of a probe
+     * object just created, never of one that existed before.
+     */
+    public function allowing(string ...$exact): self
+    {
+        return new self($this->vhost, $this->domainId, $this->areas, $this->actions, $this->domain, $this->domainAreas, [...$this->exact, ...array_values($exact)]);
+    }
 
     public function allows(RequestInterface $request): bool
     {
         $vhost = preg_quote(rawurlencode($this->vhost), '#');
         $path = $request->getUri()->getPath();
+        if (in_array($request->getMethod() . ' ' . $path, $this->exact, true)) {
+            return true;
+        }
         if ($this->domain !== '') {
             $domain = preg_quote(rawurlencode($this->domain), '#');
             foreach ($this->domainAreas as $area) {

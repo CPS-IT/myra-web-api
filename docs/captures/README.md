@@ -208,6 +208,7 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 183 | v2 | `GET /organization/contacts` | 200 | organisation contacts: OrganizationContactVO (types, priorities, reminders); names and phone redacted |
 | 184 | v2 | `GET /organization/contact-types` | 200 | contact types: key + label (no objectType) |
 | 185 | v2 | `GET /organization/notes` | 200 | organisation notes: one OrganizationNoteVO without fields (none set) |
+| 186 | v2 | `POST /domain/1140/map.example.org/waf-rules` | 403 | probe WAF rule (disabled, only /__probe__/waf, log only) on the unused domain: HTTP 403, EMPTY body — although the user holds DomainWafRule CREATE; nothing was created (verified). Likely WAF not available for that domain; not retried |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.
