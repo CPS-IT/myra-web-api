@@ -34,6 +34,15 @@ final class WriteGuardTest extends TestCase
         self::assertFalse(self::guard()->allows(new Request($method, $uri)));
     }
 
+    public function testAllowsOnlyTheListedActions(): void
+    {
+        $guard = new WriteGuard('www.example.org', 1140, ['ip-filters'], ['import']);
+
+        self::assertTrue($guard->allows(new Request('POST', 'https://apiv2.myracloud.com/domain/1140/ip-filters/www.example.org/import?type=BLACKLIST')));
+        self::assertFalse($guard->allows(new Request('POST', 'https://apiv2.myracloud.com/domain/1140/ip-filters/www.example.org/export')));
+        self::assertFalse(self::guard()->allows(new Request('POST', 'https://apiv2.myracloud.com/domain/1140/redirects/www.example.org/import')));
+    }
+
     public function testAVhostNameIsNoPattern(): void
     {
         $guard = new WriteGuard('www.example.org', 1140, ['redirects']);

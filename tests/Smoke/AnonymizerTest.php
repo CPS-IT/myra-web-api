@@ -48,7 +48,7 @@ final class AnonymizerTest extends TestCase
             'name' => 'www.real-zone.de',
             'other' => 'secret-staging.real-zone.de.',
             'cname' => 'real-zone-de.ax4z.com.',
-            'ip' => '203.0.113.77',
+            'ip' => '100.64.0.77',
             'net' => '10.20.0.0/16',
             'ip6' => '2a00:1234::1',
             'mail' => 'jane.doe@customer.de',
@@ -97,7 +97,7 @@ final class AnonymizerTest extends TestCase
 
     public function testKeepsGenericAndProbeValues(): void
     {
-        self::assertSame(['/', 'x', '/__probe__/redirect', 'https://www.example.com/__probe__/target'], $this->anonymizer->value(['/', 'x', '/__probe__/redirect', 'https://www.real-zone.de/__probe__/target']));
+        self::assertSame(['/', 'x', '/__probe__/redirect', 'https://www.example.com/__probe__/target', '__probe__ updated', '192.0.2.1/32', '2001:db8::1'], $this->anonymizer->value(['/', 'x', '/__probe__/redirect', 'https://www.real-zone.de/__probe__/target', '__probe__ updated', '192.0.2.1/32', '2001:db8::1']));
     }
 
     public function testFreeTextKeepsItsStructureAndLosesIds(): void
@@ -118,7 +118,7 @@ final class AnonymizerTest extends TestCase
 
     public function testAnonymisesFreeText(): void
     {
-        $text = $this->anonymizer->text("IP,TYPE\n203.0.113.9/32,WHITELIST\nwww.real-zone.de. 300 IN A 10.1.2.3\nadmin@customer.de\n");
+        $text = $this->anonymizer->text("IP,TYPE\n100.64.0.9/32,WHITELIST\nwww.real-zone.de. 300 IN A 10.1.2.3\nadmin@customer.de\n");
 
         self::assertSame("IP,TYPE\n192.0.2.101/32,WHITELIST\nwww.example.com. 300 IN A 192.0.2.102\nuser1@example.com\n", $text);
     }
@@ -144,7 +144,7 @@ final class AnonymizerTest extends TestCase
 
     public function testFindsNothingInACleanResult(): void
     {
-        $result = (string) json_encode($this->anonymizer->value(['name' => 'www.real-zone.de', 'ip' => '203.0.113.77', 'ip6' => '2a00:1234::1', 'created' => '2026-10-16T12:00:00+02:00', 'mail' => 'a@b.de']));
+        $result = (string) json_encode($this->anonymizer->value(['name' => 'www.real-zone.de', 'ip' => '100.64.0.77', 'ip6' => '2a00:1234::1', 'created' => '2026-10-16T12:00:00+02:00', 'mail' => 'a@b.de']));
 
         self::assertSame([], $this->anonymizer->leaks($result));
     }

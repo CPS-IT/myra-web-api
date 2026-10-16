@@ -261,7 +261,7 @@ final class Anonymizer
         }
         // generic or ours: dates, documented words, the root path, single characters and the
         // probes' own values (/__probe__/…) carry no customer data
-        if (self::isDate($value) || $this->vocabulary->has($value) || strlen($value) <= 1 || str_starts_with($value, '/__probe__/')) {
+        if (self::isDate($value) || $this->vocabulary->has($value) || strlen($value) <= 1 || str_starts_with($value, '/__probe__/') || str_starts_with($value, '__probe__') || self::isDocumentationIp($value)) {
             return $value;
         }
         $fake = match (true) {
@@ -370,6 +370,14 @@ final class Anonymizer
     private static function isIdKey(string $key): bool
     {
         return preg_match('/(^id$|Id$|ID$|Ids$)/', $key) === 1;
+    }
+
+    /**
+     * 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 2001:db8::/32 — never real (RFC 5737, 3849).
+     */
+    private static function isDocumentationIp(string $value): bool
+    {
+        return preg_match('#^(192\.0\.2|198\.51\.100|203\.0\.113)\.\d{1,3}(/\d{1,2})?$|^2001:db8:[0-9a-f:]*(/\d{1,3})?$#i', $value) === 1;
     }
 
     private static function isDate(string $value): bool

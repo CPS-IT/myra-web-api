@@ -14,11 +14,13 @@ final readonly class WriteGuard
 {
     /**
      * @param list<string> $areas path names of the probed areas, e.g. ['redirects']
+     * @param list<string> $actions allowed last path segments besides an id, e.g. ['import']
      */
     public function __construct(
         private string $vhost,
         private int $domainId,
         private array $areas,
+        private array $actions = [],
     ) {}
 
     public function allows(RequestInterface $request): bool
@@ -27,8 +29,9 @@ final readonly class WriteGuard
         $path = $request->getUri()->getPath();
         foreach ($this->areas as $area) {
             $area = preg_quote($area, '#');
+            $suffix = implode('|', ['\\d+', ...array_map(static fn(string $a): string => preg_quote($a, '#'), $this->actions)]);
             if (preg_match("#^/[a-z]{2}/rapi/$area/$vhost$#", $path) === 1
-                || preg_match("#^/domain/{$this->domainId}/$area/$vhost(/\\d+)?$#", $path) === 1) {
+                || preg_match("#^/domain/{$this->domainId}/$area/$vhost(/($suffix))?$#", $path) === 1) {
                 return true;
             }
         }
