@@ -183,6 +183,9 @@ final class IntegrationTest extends TestCase
         $users->delete($created, force: true);
         self::assertContains('DELETE /users/4711?force=true', self::requests());
         self::assertTrue($users->isAuthorized('Domain', 'READ'));
+        $contact = $client->organization()->addContact('Ops', 'ops@example.com');
+        self::assertSame('Ops', $contact->name());
+        $client->organization()->deleteContact($contact);
         try {
             $client->domainVerifications()->check('example.com');
             self::fail('No exception thrown.');

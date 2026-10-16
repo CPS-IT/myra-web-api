@@ -400,9 +400,9 @@ _personal data: anonymise in memory_
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
 | v2 | `GET /organization/contacts` | read | R | ✓ |
-| v2 | `POST /organization/contacts` | write | – | – |
+| v2 | `POST /organization/contacts` | write | – | ✓u |
 | v2 | `GET /organization/contact-types` | read | R | ✓ |
-| v2 | `PUT /organization/contacts/{id}` | write | – | – |
-| v2 | `DELETE /organization/contacts/{id}` | write | – | – |
+| v2 | `PUT /organization/contacts/{id}` | write | – | ✓u |
+| v2 | `DELETE /organization/contacts/{id}` | write | – | ✓u |
 | v2 | `GET /organization/notes` | read | R | ✓ |
-| v2 | `PUT /organization/notes` | write | – | – |
+| v2 | `PUT /organization/notes` | write | – | ✓u |
