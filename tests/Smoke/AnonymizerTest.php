@@ -186,6 +186,23 @@ final class AnonymizerTest extends TestCase
         self::assertSame([0.0, 0.0, 2], [$result['latitude'], $result['longitude'], $result['count']]);
     }
 
+    public function testKeepsMyrasOwnHosts(): void
+    {
+        $zone = "www.real-zone.de. IN NS dns.dns4.de.\nwww.real-zone.de. IN SOA dns.dns1.de. support.myrasecurity.com. (\n";
+
+        self::assertSame("www.example.com. IN NS dns.dns4.de.\nwww.example.com. IN SOA dns.dns1.de. support.myrasecurity.com. (\n", $this->anonymizer->text($zone));
+        self::assertSame(['value' => 'dns.dns2.de', 'api' => 'api.myracloud.com'], $this->anonymizer->value(['value' => 'dns.dns2.de', 'api' => 'api.myracloud.com']));
+        self::assertNotSame('dns.dns12.de', $this->anonymizer->value('dns.dns12.de'), 'one digit only');
+    }
+
+    public function testAFakeMetAgainIsNoLeak(): void
+    {
+        $text = $this->anonymizer->text("www.real-zone.de. 300 IN A 10.1.2.3\nwww.real-zone.de. 300 IN AAAA 2a00:1234::1\n");
+
+        self::assertSame([], $this->anonymizer->leaks($text), 'www.example.com. is a fake, not a real value');
+        self::assertSame([], $this->anonymizer->leaks($this->anonymizer->text($text)), 'anonymising twice changes nothing');
+    }
+
     public function testCertificateHashesStayHexPairs(): void
     {
         $result = $this->anonymizer->value(['fingerprint' => 'AB:CD:EF:01', 'serialNumber' => '0A:1B', 'again' => ['fingerprint' => 'AB:CD:EF:01']]);

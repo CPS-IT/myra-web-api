@@ -282,7 +282,7 @@ final class Anonymizer
         if ($key === 'code' && preg_match('/^[A-Z][A-Z0-9]*(_[A-Z0-9]+)+$/', $value) === 1) {
             return $value;
         }
-        if (self::isDate($value) || $this->vocabulary->has($value) || strlen($value) <= 1 || str_starts_with($value, '/__probe__/') || (str_starts_with($value, '__probe__') && !str_contains($value, '.')) || self::isDocumentationIp($value)) {
+        if (self::isDate($value) || self::isMyraHost($value) || $this->vocabulary->has($value) || strlen($value) <= 1 || str_starts_with($value, '/__probe__/') || (str_starts_with($value, '__probe__') && !str_contains($value, '.')) || self::isDocumentationIp($value)) {
             return $value;
         }
         $fake = match (true) {
@@ -296,7 +296,9 @@ final class Anonymizer
             str_starts_with($value, '/') => '/path-' . $this->next('path'),
             default => 'redacted-' . $this->next('string'),
         };
-        $this->remember($value, $fake, $key);
+        if ($fake !== $value) { // an already anonymised value met again (e.g. "example.org." in a zone file) is no real one
+            $this->remember($value, $fake, $key);
+        }
 
         return $fake;
     }
@@ -413,6 +415,15 @@ final class Anonymizer
     {
         // objectInstance / scopes: ids of the objects a permission applies to (captured with users)
         return preg_match('/(^id$|Id$|ID$|Ids$|^objectInstance$|^scopes$)/', $key) === 1;
+    }
+
+    /**
+     * Myra's own public infrastructure, the same in every customer's zone: the name servers
+     * dns.dns1.de … dns.dns4.de (captured in the BIND files) and Myra's domains.
+     */
+    private static function isMyraHost(string $value): bool
+    {
+        return preg_match('/^((dns\.)?dns\d\.de|([a-z0-9-]+\.)*(myrasecurity|myracloud)\.(com|de))\.?$/i', $value) === 1;
     }
 
     /**
