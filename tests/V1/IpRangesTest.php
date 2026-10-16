@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
  * As captured: the list, and page 2 of a probe with pageSize 10.
  */
 #[CoversClass(V1\IpRanges::class)]
+#[UsesClass(V1\Statistics::class)]
 #[CoversClass(\Myracloud\WebApi\Model\IpRange::class)]
 #[UsesClass(V1\Client::class)]
 #[UsesClass(V1\Domains::class)]

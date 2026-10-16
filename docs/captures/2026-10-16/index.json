@@ -1328,5 +1328,155 @@
         "status": 200,
         "finding": "v2 pages by query (?page=&pageSize=; separate run, so other fake ids)",
         "file": "v2-0131-probe-ip-ranges-page-2-pageSize-10.json"
+    },
+    {
+        "case": "132",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/statistic/query",
+        "status": 200,
+        "finding": "statistic query (2 h; metric numbers, URLs scrubbed): StatisticVO WITHOUT envelope (no error key), targetObject null; histogram buckets {value} keyed by ms (the manual: min/max/avg/sum); response_codes stats = map code \u2192 {min,max,sum,avg} incl. key Other; dates echoed as +0200",
+        "file": "v1-0132-statistics-01-en-rapi-statistic-query.json"
+    },
+    {
+        "case": "133",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/statistic/query",
+        "status": 500,
+        "finding": "an unknown data source: HTTP 500, empty body",
+        "file": "v1-0133-statistics-12-en-rapi-statistic-query.json"
+    },
+    {
+        "case": "134",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/statistic/query",
+        "status": 200,
+        "finding": "v2: the same request, the same StatisticVO as v1 (no envelope)",
+        "file": "v2-0134-statistics-02-statistic-query.json"
+    },
+    {
+        "case": "135",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/statistics/total-domain-requests/1792051200/1792058399",
+        "status": 200,
+        "finding": "all domains (GET, unix seconds in the path): {graph: name \u2192 {name, max, sum, data: [{x ms, y}]}, data: totals}; graph max/sum 0",
+        "file": "v2-0135-statistics-03-statistics-total-domain-requests.json"
+    },
+    {
+        "case": "136",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/statistics/total-domain-traffic/1792051200/1792058399",
+        "status": 200,
+        "finding": "all domains: the graphs WITHOUT a graph/data wrapper",
+        "file": "v2-0136-statistics-04-statistics-total-domain-traffic.json"
+    },
+    {
+        "case": "137",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/statistics/total-domain-requests/1792051200/1792058399",
+        "status": 200,
+        "finding": "POST with {domains, subDomains}: same shape as GET",
+        "file": "v2-0137-statistics-05-statistics-total-domain-requests.json"
+    },
+    {
+        "case": "138",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/statistics/http-status-codes/1792051200/1792058399",
+        "status": 200,
+        "finding": "a bare JSON list (no envelope): [{status_code, value}], all codes Myra knows (37)",
+        "file": "v2-0138-statistics-06-statistics-http-status-codes.json"
+    },
+    {
+        "case": "139",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/statistics/http-status-codes/1792051200/1792058399",
+        "status": 200,
+        "finding": "a quiet domain: the same 37 codes, value 0",
+        "file": "v2-0139-statistics-http-status-codes.json"
+    },
+    {
+        "case": "140",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/statistics/top-urls/1792051200/1792058399",
+        "status": 200,
+        "finding": "bare list [{url, count, cost}], 10 entries",
+        "file": "v2-0140-statistics-07-statistics-top-urls.json"
+    },
+    {
+        "case": "141",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/statistics/top-urls/1792051200/1792058399",
+        "status": 200,
+        "finding": "a quiet domain: the body null (not [])",
+        "file": "v2-0141-statistics-top-urls.json"
+    },
+    {
+        "case": "142",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/statistics/cached-urls/1792051200/1792058399",
+        "status": 200,
+        "finding": "bare list [{url, count}]",
+        "file": "v2-0142-statistics-08-statistics-cached-urls.json"
+    },
+    {
+        "case": "143",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/statistics/world-map/1792051200/1792058399/total_requests/desc",
+        "status": 200,
+        "finding": "bare list per country: totals + astype list (ASN names redacted)",
+        "file": "v2-0143-statistics-09-statistics-world-map.json"
+    },
+    {
+        "case": "144",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/statistics/histogram/1792051200/1792058399/total-requests/hourly/0/1",
+        "status": 200,
+        "finding": "{group: name \u2192 {graphData: {name, max, sum, data}}} per vhost + ALL-{domainId}; data null for vhosts without requests",
+        "file": "v2-0144-statistics-10-statistics-histogram.json"
+    },
+    {
+        "case": "145",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/statistics/top-urls/1792051200/1792058399",
+        "status": 400,
+        "finding": "a domain not in the account: HTTP 400, INTERNAL_ERROR envelope",
+        "file": "v2-0145-statistics-11-statistics-top-urls.json"
+    },
+    {
+        "case": "146",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/statistics/histogram/1792051200/1792058399/redacted-137/hourly/0/1",
+        "status": 403,
+        "finding": "an unknown chart: HTTP 403 \"The entity does not exist.\"",
+        "file": "v2-0146-statistics-13-statistics-histogram.json"
     }
 ]

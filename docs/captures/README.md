@@ -154,6 +154,21 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 129 | v1 | `GET /en/rapi/networks/2` | 403 | no /networks/{page} route: HTTP 403, empty body |
 | 130 | v2 | `GET /ip-ranges` | 200 | v2 lists ALL ranges (37), incl. 15 disabled with validTo in the past; same objects and ids as v1 |
 | 131 | v2 | `GET /ip-ranges?page=2&pageSize=10` | 200 | v2 pages by query (?page=&pageSize=; separate run, so other fake ids) |
+| 132 | v1 | `POST /en/rapi/statistic/query` | 200 | statistic query (2 h; metric numbers, URLs scrubbed): StatisticVO WITHOUT envelope (no error key), targetObject null; histogram buckets {value} keyed by ms (the manual: min/max/avg/sum); response_codes stats = map code → {min,max,sum,avg} incl. key Other; dates echoed as +0200 |
+| 133 | v1 | `POST /en/rapi/statistic/query` | 500 | an unknown data source: HTTP 500, empty body |
+| 134 | v2 | `POST /statistic/query` | 200 | v2: the same request, the same StatisticVO as v1 (no envelope) |
+| 135 | v2 | `GET /statistics/total-domain-requests/1792051200/1792058399` | 200 | all domains (GET, unix seconds in the path): {graph: name → {name, max, sum, data: [{x ms, y}]}, data: totals}; graph max/sum 0 |
+| 136 | v2 | `GET /statistics/total-domain-traffic/1792051200/1792058399` | 200 | all domains: the graphs WITHOUT a graph/data wrapper |
+| 137 | v2 | `POST /statistics/total-domain-requests/1792051200/1792058399` | 200 | POST with {domains, subDomains}: same shape as GET |
+| 138 | v2 | `POST /statistics/http-status-codes/1792051200/1792058399` | 200 | a bare JSON list (no envelope): [{status_code, value}], all codes Myra knows (37) |
+| 139 | v2 | `POST /statistics/http-status-codes/1792051200/1792058399` | 200 | a quiet domain: the same 37 codes, value 0 |
+| 140 | v2 | `POST /statistics/top-urls/1792051200/1792058399` | 200 | bare list [{url, count, cost}], 10 entries |
+| 141 | v2 | `POST /statistics/top-urls/1792051200/1792058399` | 200 | a quiet domain: the body null (not []) |
+| 142 | v2 | `POST /statistics/cached-urls/1792051200/1792058399` | 200 | bare list [{url, count}] |
+| 143 | v2 | `POST /statistics/world-map/1792051200/1792058399/total_requests/desc` | 200 | bare list per country: totals + astype list (ASN names redacted) |
+| 144 | v2 | `POST /statistics/histogram/1792051200/1792058399/total-requests/hourly/0/1` | 200 | {group: name → {graphData: {name, max, sum, data}}} per vhost + ALL-{domainId}; data null for vhosts without requests |
+| 145 | v2 | `POST /statistics/top-urls/1792051200/1792058399` | 400 | a domain not in the account: HTTP 400, INTERNAL_ERROR envelope |
+| 146 | v2 | `POST /statistics/histogram/1792051200/1792058399/redacted-137/hourly/0/1` | 403 | an unknown chart: HTTP 403 "The entity does not exist." |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.

@@ -188,20 +188,20 @@ _done; probed with code 413 on a vhost that had no page for it (114–126); v2 l
 
 ## Statistics
 
-_POST reads_
+_done; POST reads, captured 2026-10-16 (132–146) with tests/Smoke/statistics.php — the query is the same in v1 and v2, the dashboard statistics are v2 only_
 
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
-| v1 | `POST /{lang}/rapi/statistic/query` | read | – | – |
-| v2 | `POST /statistic/query` | read | – | – |
-| v2 | `GET /statistics/total-domain-requests/{startTime}/{finishTime}` | read | – | – |
-| v2 | `POST /statistics/total-domain-requests/{startTime}/{finishTime}` | read | – | – |
-| v2 | `GET /statistics/total-domain-traffic/{startTime}/{finishTime}` | read | – | – |
-| v2 | `POST /statistics/http-status-codes/{startTime}/{finishTime}` | read | – | – |
-| v2 | `POST /statistics/top-urls/{startTime}/{finishTime}` | read | – | – |
-| v2 | `POST /statistics/cached-urls/{startTime}/{finishTime}` | read | – | – |
-| v2 | `POST /statistics/world-map/{startTime}/{finishTime}/{sortBy}/{direction}` | read | – | – |
-| v2 | `POST /statistics/histogram/{startTime}/{finishTime}/{chartName}/{interval}/{compressed}/{sum}` | read | – | – |
+| v1 | `POST /{lang}/rapi/statistic/query` | read | R | ✓ |
+| v2 | `POST /statistic/query` | read | R | ✓ |
+| v2 | `GET /statistics/total-domain-requests/{startTime}/{finishTime}` | read | R | ✓ |
+| v2 | `POST /statistics/total-domain-requests/{startTime}/{finishTime}` | read | R | ✓ |
+| v2 | `GET /statistics/total-domain-traffic/{startTime}/{finishTime}` | read | R | ✓ |
+| v2 | `POST /statistics/http-status-codes/{startTime}/{finishTime}` | read | R | ✓ |
+| v2 | `POST /statistics/top-urls/{startTime}/{finishTime}` | read | R | ✓ |
+| v2 | `POST /statistics/cached-urls/{startTime}/{finishTime}` | read | R | ✓ |
+| v2 | `POST /statistics/world-map/{startTime}/{finishTime}/{sortBy}/{direction}` | read | R | ✓ |
+| v2 | `POST /statistics/histogram/{startTime}/{finishTime}/{chartName}/{interval}/{compressed}/{sum}` | read | R | ✓ |
 
 ## IP ranges
 

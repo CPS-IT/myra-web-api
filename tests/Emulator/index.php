@@ -27,6 +27,8 @@ declare(strict_types=1);
  * - maintenance: the account has none, so both vhosts answer the probe's captured list;
  * - DNS record writes are echoed in the captured shapes (stateless); the dedicated v2 load
  *   balancing PUT answers the captured HTTP 500;
+ * - statistics: the captured answers whatever the query or period; v2 dashboard: example.org
+ *   answers the quiet domain's captures, histogram charts other than total-* are unknown;
  * - subdomain settings: v2 settings of www.example.com are the v1 capture, `?flat` answers
  *   the apex (v1) or the probed vhost (v2) capture whatever the vhost; POST is echoed.
  *
@@ -210,6 +212,8 @@ final class Emulator
         return match (true) {
             $this->method === 'GET' && preg_match('#^/domains/(\d+)$#', $route, $m) === 1
                 => Answer::page('v1/domains/list', 'list', (int) $m[1]),
+            $this->method === 'POST' && $route === '/statistic/query'
+                => Answer::fixture('v1/statistics/query'),
             $this->method === 'GET' && $route === '/networks'
                 => Answer::page('v1/ip-ranges/list', 'list', $this->page()),
             $this->method === 'GET' && preg_match('#^/dnsRecords/([^/]+)/(\d+)$#', $route, $m) === 1
@@ -250,6 +254,10 @@ final class Emulator
         return match (true) {
             $this->method === 'GET' && $route === '/domains'
                 => Answer::page('v2/domains/list', 'data', $page),
+            $this->method === 'POST' && $route === '/statistic/query'
+                => Answer::fixture('v2/statistics/query'),
+            preg_match('#^/statistics/([a-z-]+)/\d+/\d+(/.*)?$#', $route, $m) === 1
+                => $this->statistics($m[1], $m[2] ?? ''),
             $this->method === 'GET' && $route === '/ip-ranges'
                 => Answer::page('v2/ip-ranges/list', 'data', $page),
             preg_match('#^/domain/(\d+)/(redirects|ip-filters)/([^/]+)(/(\d+|export|import))?$#', $route, $m) === 1
@@ -466,6 +474,31 @@ final class Emulator
             'recursive' => $data['recursive'] ?? false,
             'bulk' => $bulk,
         ]]);
+    }
+
+    /**
+     * v2 dashboard statistics: the captures, whatever the period; example.org is the quiet
+     * domain (no URLs, status codes all 0), the histogram knows the charts of the spec.
+     */
+    private function statistics(string $statistic, string $tail): Answer
+    {
+        $hosts = json_decode($this->body, true);
+        $quiet = is_array($hosts) && in_array('example.org', is_array($hosts['domains'] ?? null) ? $hosts['domains'] : [], true);
+        $chart = explode('/', $tail)[1] ?? '';
+
+        return match (true) {
+            $statistic === 'total-domain-requests' && $this->method === 'GET' => Answer::fixture('v2/statistics/total-requests'),
+            $statistic === 'total-domain-requests' && $this->method === 'POST' => Answer::fixture('v2/statistics/total-requests-selection'),
+            $statistic === 'total-domain-traffic' && $this->method === 'GET' => Answer::fixture('v2/statistics/total-traffic'),
+            $this->method !== 'POST' => self::notEmulated($this->method, "/statistics/$statistic"),
+            $statistic === 'http-status-codes' => Answer::fixture($quiet ? 'v2/statistics/http-status-codes-quiet' : 'v2/statistics/http-status-codes'),
+            $statistic === 'top-urls' => Answer::fixture($quiet ? 'v2/statistics/top-urls-empty' : 'v2/statistics/top-urls'),
+            $statistic === 'cached-urls' => Answer::fixture('v2/statistics/cached-urls'),
+            $statistic === 'world-map' => Answer::fixture('v2/statistics/world-map'),
+            $statistic === 'histogram' && str_starts_with($chart, 'total-') => Answer::fixture('v2/statistics/histogram'),
+            $statistic === 'histogram' => Answer::fixture('v2/statistics/histogram-unknown-chart'),
+            default => self::notEmulated($this->method, "/statistics/$statistic"),
+        };
     }
 
     /**

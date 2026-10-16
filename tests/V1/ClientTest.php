@@ -26,6 +26,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(V1\Maintenances::class)]
 #[UsesClass(V1\ErrorPages::class)]
 #[UsesClass(V1\IpRanges::class)]
+#[UsesClass(V1\Statistics::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\HmacSignature::class)]
 #[UsesClass(\Myracloud\WebApi\Http\Transport::class)]

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Myracloud\WebApi\Tests\Integration;
 
 use Closure;
+use DateTimeImmutable;
 use LogicException;
 use Myracloud\WebApi\Auth\Authentication;
 use Myracloud\WebApi\Auth\BearerToken;
@@ -20,6 +21,7 @@ use Myracloud\WebApi\Model\IpFilter;
 use Myracloud\WebApi\Model\Maintenance;
 use Myracloud\WebApi\Model\MaintenanceTemplate;
 use Myracloud\WebApi\Model\Redirect;
+use Myracloud\WebApi\Model\StatisticQuery;
 use Myracloud\WebApi\Model\UpstreamOptions;
 use Myracloud\WebApi\V1;
 use Myracloud\WebApi\V2;
@@ -116,6 +118,36 @@ final class IntegrationTest extends TestCase
         self::assertCount($version === 'v1' ? 22 : 37, $ranges->list());
         self::assertCount(22, $ranges->active());
         self::assertContains('GET /' . ($version === 'v1' ? 'en/rapi/networks' : 'ip-ranges') . '?page=11', self::requests());
+        self::assertAllAuthenticated();
+    }
+
+    /**
+     * The shared query in both versions; the dashboard statistics with v2.
+     *
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testReadsStatistics(string $version, Closure $auth): void
+    {
+        $client = self::client($version, $auth());
+        $from = new DateTimeImmutable('2026-10-15T10:00:00+02:00');
+        $to = new DateTimeImmutable('2026-10-15T11:59:59+02:00');
+
+        $result = $client->statistics()->query((new StatisticQuery($from, $to, ['ALL:example.com']))->withDataSource('requests', 'requests'));
+        self::assertIsInt($result->stats('requests')->sum());
+
+        if ($client instanceof V2\Client) {
+            $statistics = $client->statistics();
+            self::assertArrayHasKey('total_requests', $statistics->totalRequests($from, $to)->totals());
+            self::assertCount(3, $statistics->totalTraffic($from, $to));
+            self::assertSame([0, 0, 0], array_values($statistics->httpStatusCodes($from, $to, ['example.org'])));
+            self::assertCount(3, $statistics->topUrls($from, $to, ['example.com']));
+            self::assertSame([], $statistics->topUrls($from, $to, ['example.org']));
+            self::assertSame('DE', $statistics->worldMap($from, $to, ['example.com'])[0]->countryCode());
+            self::assertArrayHasKey('www.example.com', $statistics->histogram($from, $to, V2\Statistics::CHART_TOTAL_REQUESTS, V2\Statistics::INTERVAL_HOURLY, ['example.com']));
+            self::assertContains('POST /statistics/top-urls/1792051200/1792058399', self::requests());
+        }
         self::assertAllAuthenticated();
     }
 

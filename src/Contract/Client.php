@@ -31,4 +31,6 @@ interface Client
     public function errorPages(): ErrorPages;
 
     public function ipRanges(): IpRanges;
+
+    public function statistics(): Statistics;
 }

@@ -25,6 +25,8 @@ final class JsonObjectTest extends TestCase
         'list' => [['id' => 1], ['id' => 2]],
         'bulk' => ['/a', '/b'],
         'translations' => ['en' => 'A', 'de' => 'B'],
+        'avg' => 6.5,
+        'codes' => ['200' => ['sum' => 1], 'Other' => ['sum' => 2]],
     ];
 
     public function testReadsTypedFields(): void
@@ -48,7 +50,29 @@ final class JsonObjectTest extends TestCase
         self::assertSame([], $json->strings('empty'));
         self::assertSame(['en' => 'A', 'de' => 'B'], $json->stringMap('translations'));
         self::assertSame([], $json->stringMap('empty'));
+        self::assertSame(300, $json->number('ttl'));
+        self::assertSame(6.5, $json->number('avg'));
+        self::assertSame([200 => ['sum' => 1], 'Other' => ['sum' => 2]], array_map(static fn(JsonObject $o): array => $o->toArray(), $json->objectMap('codes')));
+        self::assertSame([], $json->objectMap('empty'));
         self::assertSame(self::DATA, $json->toArray());
+    }
+
+    public function testNamesEntriesByTheirPath(): void
+    {
+        $json = new JsonObject(['graph' => ['total' => ['max' => 'x'], '200' => ['y' => 1]]], 'body');
+
+        self::assertSame(['total', 200], array_keys($json->objectMap('graph')));
+        self::assertSame(['total', 200], array_keys((new JsonObject(['total' => [], '200' => ['y' => 1]]))->entries()));
+
+        try {
+            $json->objectMap('graph')['total']->number('max');
+            self::fail('No exception thrown.');
+        } catch (TransportException $exception) {
+            self::assertSame('Unexpected response: body.graph.total.max is not a number but string.', $exception->getMessage());
+        }
+
+        $this->expectExceptionMessage('Unexpected response: body.codes.200 is not an object but int.');
+        (new JsonObject(['codes' => ['200' => 5]], 'body'))->objectMap('codes');
     }
 
     /**
@@ -73,6 +97,10 @@ final class JsonObjectTest extends TestCase
         yield 'strings of objects' => [static fn(JsonObject $j): mixed => $j->strings('list'), 'Unexpected response: list[0] is not a string but array.'];
         yield 'string map from list' => [static fn(JsonObject $j): mixed => $j->stringMap('bulk'), 'Unexpected response: bulk is not an object of strings but array.'];
         yield 'string map from scalar' => [static fn(JsonObject $j): mixed => $j->stringMap('ttl'), 'Unexpected response: ttl is not an object of strings but int.'];
+        yield 'number' => [static fn(JsonObject $j): mixed => $j->number('name'), 'Unexpected response: name is not a number but string.'];
+        yield 'missing number' => [static fn(JsonObject $j): mixed => $j->number('missing'), 'Unexpected response: missing is missing.'];
+        yield 'object map from list' => [static fn(JsonObject $j): mixed => $j->objectMap('bulk'), 'Unexpected response: bulk is not an object but array.'];
+        yield 'object map of scalars' => [static fn(JsonObject $j): mixed => $j->objectMap('translations'), 'Unexpected response: translations.en is not an object but string.'];
         yield 'string map of ints' => [static fn(JsonObject $j): mixed => $j->stringMap('upstream'), 'Unexpected response: upstream.weight is not a string but int.'];
     }
 

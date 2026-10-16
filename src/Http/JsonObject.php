@@ -72,6 +72,21 @@ final readonly class JsonObject
     }
 
     /**
+     * An integer or a float (statistics send both for the same field).
+     *
+     * @throws TransportException
+     */
+    public function number(string $key): int|float
+    {
+        $value = $this->value($key);
+        if (!is_int($value) && !is_float($value)) {
+            throw $this->unexpected($key, 'a number', $value);
+        }
+
+        return $value;
+    }
+
+    /**
      * @throws TransportException
      */
     public function bool(string $key): bool
@@ -166,6 +181,40 @@ final readonly class JsonObject
         }
 
         return $map;
+    }
+
+    /**
+     * An object whose values are objects, by key — e.g. graphs by name, statistics by status
+     * code. Numeric keys come back as int, as always in PHP.
+     *
+     * @return array<int|string, self>
+     *
+     * @throws TransportException
+     */
+    public function objectMap(string $key): array
+    {
+        return $this->object($key)->entries();
+    }
+
+    /**
+     * Every value of this object as an object, by key (for an answer that is such a map).
+     *
+     * @return array<int|string, self>
+     *
+     * @throws TransportException
+     */
+    public function entries(): array
+    {
+        $entries = [];
+        foreach ($this->data as $name => $item) {
+            $path = $this->pathOf((string) $name);
+            if (!self::isObject($item)) {
+                throw new TransportException(sprintf('Unexpected response: %s is not an object but %s.', $path, get_debug_type($item)));
+            }
+            $entries[$name] = new self($item, $path);
+        }
+
+        return $entries;
     }
 
     /**

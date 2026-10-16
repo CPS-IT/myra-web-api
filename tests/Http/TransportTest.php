@@ -251,6 +251,57 @@ final class TransportTest extends TestCase
         (new Transport(new BearerToken('t'), 'https://apiv2.myracloud.com', $http))->fetchText('x/export');
     }
 
+    public function testSendsForABareList(): void
+    {
+        $http = (new FakeHttpClient())->queue(new Response(200, ['Content-Type' => 'application/json'], '[{"url":"/a","count":2},{"url":"/b","count":1}]'));
+
+        $list = (new Transport(new BearerToken('t'), 'https://apiv2.myracloud.com', $http))->sendList('POST', 'statistics/top-urls/1/2', ['domains' => ['example.com']]);
+
+        self::assertSame([['url' => '/a', 'count' => 2], ['url' => '/b', 'count' => 1]], array_map(static fn(JsonObject $o): array => $o->toArray(), $list));
+        self::assertSame('POST https://apiv2.myracloud.com/statistics/top-urls/1/2', $http->lastRequest()->getMethod() . ' ' . $http->lastRequest()->getUri());
+        self::assertSame('{"domains":["example.com"]}', (string) $http->lastRequest()->getBody());
+        self::assertSame('application/json', $http->lastRequest()->getHeaderLine('Content-Type'));
+    }
+
+    #[TestWith(['null'])]
+    #[TestWith([" null\n"])]
+    #[TestWith(['[]'])]
+    public function testNullOrAnEmptyListIsNoEntries(string $body): void
+    {
+        $http = (new FakeHttpClient())->queue(new Response(200, ['Content-Type' => 'application/json'], $body));
+
+        self::assertSame([], (new Transport(new BearerToken('t'), 'https://apiv2.myracloud.com', $http))->sendList('GET', 'x'));
+        self::assertSame('', (string) $http->lastRequest()->getBody());
+    }
+
+    #[TestWith([200, '', 'x: expected a JSON list (HTTP 200).'])]
+    #[TestWith([204, '', 'x: expected a JSON list (HTTP 204).'])]
+    #[TestWith([200, '{"error":false,"data":[]}', 'x: expected a JSON list (HTTP 200).'])]
+    #[TestWith([200, '[{"a":1},5]', 'Unexpected response: list[1] is not an object but int.'])]
+    #[TestWith([200, '"null"', 'the response is not a JSON object (HTTP 200).'])]
+    #[TestWith([199, '[]', 'unexpected response (HTTP 199).'])]
+    #[TestWith([300, '[]', 'unexpected response (HTTP 300).'])]
+    #[TestWith([500, '', 'server error (HTTP 500).'])]
+    public function testAnythingButAListIsUnexpected(int $status, string $body, string $message): void
+    {
+        $http = (new FakeHttpClient())->queue(new Response($status, ['Content-Type' => 'application/json'], $body));
+
+        $this->expectException(TransportException::class);
+        $this->expectExceptionMessage($message);
+
+        (new Transport(new BearerToken('t'), 'https://apiv2.myracloud.com', $http))->sendList('POST', 'x');
+    }
+
+    public function testSendingForAListStillReportsFailures(): void
+    {
+        $http = (new FakeHttpClient())->queue(new Response(400, ['Content-Type' => 'application/json'], '{"error":true,"violationList":[{"message":"An internal error occurred.","code":"INTERNAL_ERROR"}],"data":[]}'));
+
+        $this->expectException(\Myracloud\WebApi\Exception\RequestRejectedException::class);
+        $this->expectExceptionMessage('An internal error occurred.');
+
+        (new Transport(new BearerToken('t'), 'https://apiv2.myracloud.com', $http))->sendList('POST', 'x', []);
+    }
+
     public function testTheDefaultClientIsGuzzleWithTimeouts(): void
     {
         self::assertInstanceOf(GuzzleClient::class, Transport::defaultClient());

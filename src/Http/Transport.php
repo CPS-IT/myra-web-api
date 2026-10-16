@@ -117,6 +117,38 @@ final readonly class Transport
     }
 
     /**
+     * A request answered with a bare JSON list instead of an envelope (v2 statistics);
+     * failures still come as envelopes or the usual denials. Myra answers `null` for no
+     * entries (captured); an empty body is not a list.
+     *
+     * @param array<mixed>|null $body sent as JSON; null sends no body
+     *
+     * @return list<JsonObject>
+     *
+     * @throws InvalidArgumentException if the body cannot be encoded as JSON
+     * @throws RequestRejectedException
+     * @throws AccessDeniedException
+     * @throws TransportException
+     */
+    public function sendList(string $method, string $path, ?array $body = null): array
+    {
+        [$request, $response] = $this->exchange($method, $path, [], $body === null ? null : self::encode($body), 'application/json');
+        $status = $response->getStatusCode();
+        if ($status >= 200 && $status < 300) {
+            $decoded = json_decode((string) $response->getBody(), true);
+            if ($decoded === null && trim((string) $response->getBody()) === 'null') {
+                return [];
+            }
+            if (is_array($decoded) && array_is_list($decoded)) {
+                return (new JsonObject(['list' => $decoded]))->objects('list');
+            }
+        }
+        Envelope::parse($request, $response); // throws for every failure
+
+        throw new TransportException(sprintf('%s %s: expected a JSON list (HTTP %d).', $method, $request->getUri(), $status));
+    }
+
+    /**
      * @param array<string, scalar> $query
      *
      * @return array{RequestInterface, ResponseInterface}

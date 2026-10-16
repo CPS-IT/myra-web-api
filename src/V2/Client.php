@@ -35,6 +35,7 @@ final readonly class Client implements Contract\Client
     private Maintenances $maintenances;
     private ErrorPages $errorPages;
     private IpRanges $ipRanges;
+    private Statistics $statistics;
     private MaintenanceTemplates $maintenanceTemplates;
 
     /**
@@ -60,6 +61,7 @@ final readonly class Client implements Contract\Client
         $this->maintenances = new Maintenances($transport, $this->domainIds);
         $this->errorPages = new ErrorPages($transport, $this->domainIds);
         $this->ipRanges = new IpRanges($transport);
+        $this->statistics = new Statistics($transport);
         $this->maintenanceTemplates = new MaintenanceTemplates($transport, $this->domainIds);
     }
 
@@ -111,6 +113,11 @@ final readonly class Client implements Contract\Client
     public function ipRanges(): IpRanges
     {
         return $this->ipRanges;
+    }
+
+    public function statistics(): Statistics
+    {
+        return $this->statistics;
     }
 
     /**

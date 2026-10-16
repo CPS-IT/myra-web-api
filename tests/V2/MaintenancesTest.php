@@ -22,6 +22,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V2\Maintenances::class)]
 #[UsesClass(V2\ErrorPages::class)]
 #[UsesClass(V2\IpRanges::class)]
+#[UsesClass(V2\Statistics::class)]
 #[CoversClass(V2\MaintenanceTemplates::class)]
 #[UsesClass(V2\Client::class)]
 #[UsesClass(V2\Domains::class)]

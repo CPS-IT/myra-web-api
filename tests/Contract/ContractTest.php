@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Myracloud\WebApi\Tests\Contract;
 
 use Closure;
+use DateTimeImmutable;
 use Myracloud\WebApi\Auth\Authentication;
 use Myracloud\WebApi\Auth\BearerToken;
 use Myracloud\WebApi\Auth\HmacSignature;
@@ -15,6 +16,7 @@ use Myracloud\WebApi\Exception\RequestRejectedException;
 use Myracloud\WebApi\Model\CacheClear;
 use Myracloud\WebApi\Model\DnsRecord;
 use Myracloud\WebApi\Model\Domain;
+use Myracloud\WebApi\Model\StatisticQuery;
 use Myracloud\WebApi\Tests\Support\FakeHttpClient;
 use Myracloud\WebApi\Tests\Support\FixedClock;
 use Myracloud\WebApi\Tests\Support\Fixture;
@@ -41,6 +43,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V1\Maintenances::class)]
 #[CoversClass(V1\ErrorPages::class)]
 #[CoversClass(V1\IpRanges::class)]
+#[CoversClass(V1\Statistics::class)]
 #[CoversClass(V2\Client::class)]
 #[CoversClass(V2\Domains::class)]
 #[CoversClass(V2\DnsRecords::class)]
@@ -52,6 +55,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V2\Maintenances::class)]
 #[CoversClass(V2\ErrorPages::class)]
 #[CoversClass(V2\IpRanges::class)]
+#[CoversClass(V2\Statistics::class)]
 #[CoversClass(V2\MaintenanceTemplates::class)]
 #[CoversClass(V2\DomainIdResolver::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
@@ -73,6 +77,9 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(\Myracloud\WebApi\Model\Settings::class)]
 #[UsesClass(\Myracloud\WebApi\Model\ErrorPage::class)]
 #[UsesClass(\Myracloud\WebApi\Model\IpRange::class)]
+#[UsesClass(\Myracloud\WebApi\Model\StatisticQuery::class)]
+#[UsesClass(\Myracloud\WebApi\Model\StatisticResult::class)]
+#[UsesClass(\Myracloud\WebApi\Model\StatisticValues::class)]
 #[UsesClass(\Myracloud\WebApi\Exception\RequestRejectedException::class)]
 final class ContractTest extends TestCase
 {
@@ -256,6 +263,40 @@ final class ContractTest extends TestCase
             [['example.com', 502, 90400], ['example.com', 504, 90401], ['www.example.com', 502, 90402], ['www.example.com', 504, 90403]],
             array_map(static fn(\Myracloud\WebApi\Model\ErrorPage $p): array => [$p->subdomain(), $p->errorCode(), $p->id()], $pages),
         );
+    }
+
+    /**
+     * The same query, byte for byte, and the same StatisticVO back (no envelope) in both.
+     *
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testQueriesStatistics(string $version, Closure $auth): void
+    {
+        $http = (new FakeHttpClient())->queue(Fixture::response($version . '/statistics/query'));
+        $query = (new StatisticQuery(new DateTimeImmutable('2026-10-15T10:00:00+02:00'), new DateTimeImmutable('2026-10-15T11:59:59+02:00'), ['ALL:example.com']))
+            ->withAggregationInterval(StatisticQuery::INTERVAL_HOUR)
+            ->withDataSource('requests', 'requests')
+            ->withDataSource('requests_histogram', 'requests', StatisticQuery::TYPE_HISTOGRAM)
+            ->withDataSource('response_codes', 'response_codes')
+            ->withSelection(StatisticQuery::SELECT_FQDN);
+
+        $result = self::client($version, $auth(), $http)->statistics()->query($query);
+
+        self::assertSame('POST', $http->lastRequest()->getMethod());
+        self::assertStringEndsWith('/statistic/query', $http->lastRequest()->getUri()->getPath());
+        self::assertSame(Fixture::requestBody('v1/statistics/query'), (string) $http->lastRequest()->getBody());
+        self::assertSame(Fixture::requestBody('v2/statistics/query'), (string) $http->lastRequest()->getBody());
+        $sent = Fixture::load($version . '/statistics/query')['response']['body'];
+        self::assertIsArray($sent);
+        self::assertIsArray($sent['result']);
+        self::assertIsArray($sent['result']['requests']);
+        self::assertEqualsCanonicalizing(['requests', 'requests_histogram', 'response_codes'], $result->names()); // order varies
+        self::assertSame($sent['result']['requests']['sum'], $result->stats('requests')->sum());
+        self::assertSame([1792051200000, 1792054800000], array_keys($result->histogram('requests_histogram')));
+        self::assertContains('Other', array_keys($result->statsByKey('response_codes')));
+        self::assertContains(404, array_keys($result->statsByKey('response_codes')));
     }
 
     /**
