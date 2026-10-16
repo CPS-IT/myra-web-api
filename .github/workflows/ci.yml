@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'feature/**']
+  pull_request:
+
+jobs:
+  gates:
+    name: PHP ${{ matrix.php }}, ${{ matrix.dependencies }} dependencies
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4', '8.5']
+        # lowest = Guzzle 7 / psr7 2 / http-message 1.1, highest = Guzzle 8 / psr7 3
+        dependencies: [lowest, highest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      # composer.json pins platform.php to 8.2.0 for local installs; each row resolves for
+      # its own PHP instead (the 8.2 rows still guard the minimum: lint and tests on 8.2).
+      - run: composer config platform.php ${{ matrix.php }}.0
+      - run: composer update --no-interaction --no-progress ${{ matrix.dependencies == 'lowest' && '--prefer-lowest' || '' }}
+      # validate --strict, lint, PHP-CS-Fixer, PHPStan, dependency analyser, unit + integration tests
+      - run: composer ci
+
+  mutation:
+    name: Mutation testing (Auth, Http, Exception)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: pcov
+      - run: composer install --no-interaction --no-progress
+      - run: vendor/bin/infection --threads=max --show-mutations --no-progress

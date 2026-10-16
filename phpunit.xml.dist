@@ -16,14 +16,20 @@
          displayDetailsOnTestsThatTriggerWarnings="true">
     <php>
         <!-- No test touches the network: a real Guzzle client (e.g. a mutant that swaps in the
-             default client) goes through a closed local port and fails at once. -->
+             default client) goes through a closed local port and fails at once. Only the
+             local emulator of the integration suite (127.0.0.1) is reachable. -->
         <env name="HTTP_PROXY" value="http://127.0.0.1:9" force="true"/>
         <env name="HTTPS_PROXY" value="http://127.0.0.1:9" force="true"/>
-        <env name="NO_PROXY" value="" force="true"/>
+        <env name="NO_PROXY" value="127.0.0.1" force="true"/>
     </php>
     <testsuites>
-        <testsuite name="all">
+        <testsuite name="unit">
             <directory>tests</directory>
+            <exclude>tests/Integration</exclude>
+        </testsuite>
+        <!-- Real HTTP against tests/Emulator, started on a free local port by the tests. -->
+        <testsuite name="integration">
+            <directory>tests/Integration</directory>
         </testsuite>
     </testsuites>
     <source>

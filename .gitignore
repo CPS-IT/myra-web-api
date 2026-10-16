@@ -4,3 +4,4 @@
 /.php-cs-fixer.php
 /phpunit.xml
 /phpstan.neon
+/.smoke.env
