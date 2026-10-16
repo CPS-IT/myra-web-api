@@ -24,6 +24,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(V2\Redirects::class)]
 #[UsesClass(V2\IpFilters::class)]
 #[UsesClass(V2\CacheSettings::class)]
+#[UsesClass(V2\SubdomainSettings::class)]
 #[CoversClass(V2\DomainIdResolver::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\HmacSignature::class)]

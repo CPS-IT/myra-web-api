@@ -37,6 +37,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V1\Redirects::class)]
 #[CoversClass(V1\IpFilters::class)]
 #[CoversClass(V1\CacheSettings::class)]
+#[CoversClass(V1\SubdomainSettings::class)]
 #[CoversClass(V2\Client::class)]
 #[CoversClass(V2\Domains::class)]
 #[CoversClass(V2\DnsRecords::class)]
@@ -44,6 +45,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V2\Redirects::class)]
 #[CoversClass(V2\IpFilters::class)]
 #[CoversClass(V2\CacheSettings::class)]
+#[CoversClass(V2\SubdomainSettings::class)]
 #[CoversClass(V2\DomainIdResolver::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\HmacSignature::class)]
@@ -60,6 +62,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(\Myracloud\WebApi\Model\Redirect::class)]
 #[UsesClass(\Myracloud\WebApi\Model\IpFilter::class)]
 #[UsesClass(\Myracloud\WebApi\Model\CacheSetting::class)]
+#[UsesClass(\Myracloud\WebApi\Model\Settings::class)]
 #[UsesClass(\Myracloud\WebApi\Exception\RequestRejectedException::class)]
 final class ContractTest extends TestCase
 {
@@ -205,6 +208,25 @@ final class ContractTest extends TestCase
             [90373, 'example.com', '/path-1', 0, 'prefix', 5, false, 10, true],
             [$settings[0]->id(), $settings[0]->subdomain(), $settings[0]->path(), $settings[0]->ttl(), $settings[0]->type(), $settings[0]->notFoundTtl(), $settings[0]->isEnforced(), $settings[0]->sort(), $settings[0]->isEnabled()],
         );
+    }
+
+    /**
+     * The same settings in both versions — names and booleans; numbers differ in type (v1
+     * sends them as strings).
+     *
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testReadsTheSubdomainSettings(string $version, Closure $auth): void
+    {
+        $http = self::answers($version, 'settings/get-apex');
+
+        $settings = self::client($version, $auth(), $http)->subdomainSettings()->get('example.com');
+
+        self::assertCount(94, $settings->inherited());
+        self::assertSame([93, 0, 12, 0, 19], array_map('count', $settings->layers()));
+        self::assertSame(array_filter($settings->inherited(), 'is_bool'), array_filter(self::client('v1', $auth(), self::answers('v1', 'settings/get-apex'))->subdomainSettings()->get('example.com')->inherited(), 'is_bool'));
     }
 
     /**

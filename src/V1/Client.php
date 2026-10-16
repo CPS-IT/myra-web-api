@@ -29,6 +29,7 @@ final readonly class Client implements Contract\Client
     private Redirects $redirects;
     private IpFilters $ipFilters;
     private CacheSettings $cacheSettings;
+    private SubdomainSettings $subdomainSettings;
 
     /**
      * @param string $language language of Myra's messages (violations): "en" or "de"
@@ -61,6 +62,7 @@ final readonly class Client implements Contract\Client
         $this->redirects = new Redirects($transport);
         $this->ipFilters = new IpFilters($transport);
         $this->cacheSettings = new CacheSettings($transport);
+        $this->subdomainSettings = new SubdomainSettings($transport);
     }
 
     public function domains(): Domains
@@ -91,5 +93,10 @@ final readonly class Client implements Contract\Client
     public function cacheSettings(): CacheSettings
     {
         return $this->cacheSettings;
+    }
+
+    public function subdomainSettings(): SubdomainSettings
+    {
+        return $this->subdomainSettings;
     }
 }

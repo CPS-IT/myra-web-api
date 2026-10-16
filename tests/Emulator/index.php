@@ -22,7 +22,9 @@ declare(strict_types=1);
  * - writes of per-vhost areas (redirects, IP filter, cache settings) are echoed in the captured shapes but
  *   stateless: nothing is stored, a stale `modified` is not detected; v2 lists of
  *   www.example.com are the v1 capture's objects in a v2 envelope; the IP filter export is
- *   built from the captured list.
+ *   built from the captured list;
+ * - subdomain settings: v2 settings of www.example.com are the v1 capture, `?flat` answers
+ *   the apex (v1) or the probed vhost (v2) capture whatever the vhost; POST is echoed.
  *
  * Authentication is checked independently of the package's own code: HMAC recomputed
  * after the v2 spec (docs/v2/openapi.json, info.description §2.1.2), or a Bearer token.
@@ -206,6 +208,8 @@ final class Emulator
                 => rawurldecode($m[1]) === 'example.com'
                     ? Answer::page('v1/dns-records/list', 'list', (int) $m[2])
                     : Answer::fixture('v1/errors/unknown-domain'),
+            preg_match('#^/subdomainSetting/([^/]+)$#', $route, $m) === 1
+                => $this->settings('v1', rawurldecode($m[1])),
             preg_match('#^/(redirects|ipfilter|cacheSettings)/([^/]+)(/(\d+))?$#', $route, $m) === 1
                 => $this->v1Vhost(self::V1_AREAS[$m[1]], rawurldecode($m[2]), isset($m[4]) ? (int) $m[4] : null),
             $this->method === 'PUT' && preg_match('#^/cacheClear/([^/]+)$#', $route, $m) === 1
@@ -226,6 +230,8 @@ final class Emulator
                 => Answer::page('v2/domains/list', 'data', $page),
             preg_match('#^/domain/(\d+)/(redirects|ip-filters)/([^/]+)(/(\d+|export|import))?$#', $route, $m) === 1
                 => $this->v2Vhost(self::V2_AREAS[$m[2]], (int) $m[1], rawurldecode($m[3]), $m[5] ?? null, $page),
+            preg_match('#^/domain/(\d+)/([^/]+)/settings$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
+                => $this->settings('v2', rawurldecode($m[2])),
             // areas with the vhost before the area name
             preg_match('#^/domain/(\d+)/([^/]+)/(cache-settings)(/(\d+))?$#', $route, $m) === 1
                 => $this->v2Vhost(self::V2_AREAS[$m[3]], (int) $m[1], rawurldecode($m[2]), $m[5] ?? null, $page),
@@ -292,6 +298,25 @@ final class Emulator
             $this->method === 'PUT' && $id !== null => $this->written($config['objectType'], 'data', $id),
             $this->method === 'DELETE' && $id !== null => new Answer(204, null, ''),
             default => self::notEmulated($this->method, "/domain/$domainId/$area/$vhost"),
+        };
+    }
+
+    /**
+     * Subdomain settings: the captured layers of the apex and www.example.com, `?flat` merged,
+     * POST echoed (v1 in targetObject, v2 in data — as captured).
+     */
+    private function settings(string $version, string $vhost): Answer
+    {
+        $known = ['example.com' => 'get-apex', 'www.example.com' => 'get-www'];
+        if (!isset($known[$vhost])) {
+            return Answer::fixture($version === 'v1' ? 'v1/settings/unknown-subdomain' : 'v2/settings/unknown-vhost');
+        }
+
+        return match (true) {
+            $this->method === 'GET' && array_key_exists('flat', $this->query()) => Answer::fixture($version === 'v1' ? 'v1/settings/flat-apex' : 'v2/settings/flat'),
+            $this->method === 'GET' => Answer::fixture(($version === 'v2' && $vhost === 'example.com' ? 'v2' : 'v1') . "/settings/{$known[$vhost]}"),
+            $this->method === 'POST' => Answer::success($version === 'v1' ? 'targetObject' : 'data', [json_decode($this->body, true) ?? []]),
+            default => self::notEmulated($this->method, "/settings/$vhost"),
         };
     }
 

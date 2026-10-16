@@ -91,6 +91,18 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 66 | v2 | `PUT /domain/1140/map.example.org/cache-settings/90002` | 200 | v2 update: PUT …/cache-settings/{id} |
 | 67 | v2 | `PUT /domain/1140/map.example.org/cache-settings/90002` | 400 | stale modified: HTTP 400 |
 | 68 | v2 | `DELETE /domain/1140/map.example.org/cache-settings/90002` | 204 | v2 delete: HTTP 204, empty |
+| 69 | v1 | `GET /en/rapi/subdomainSetting/example.com` | 200 | subdomain settings: targetObject = 5 inheritance layers, domain = the vhost's own, parent = inherited (the manual's structure is outdated) |
+| 70 | v1 | `GET /en/rapi/subdomainSetting/www.example.com` | 200 | a vhost with own settings: domain holds them, the last layer equals domain |
+| 71 | v1 | `GET /en/rapi/subdomainSetting/example.com?flat=` | 200 | ?flat: the merged settings as a plain map, no envelope; v1 sends numbers as strings |
+| 72 | v1 | `GET /en/rapi/subdomainSetting/www.example.org` | 500 | v1, a subdomain that is no vhost: HTTP 500, empty HTML |
+| 73 | v2 | `GET /domain/1000/example.com/settings` | 200 | v2 GET answers in targetObject like v1 (not data) |
+| 74 | v2 | `GET /domain/1140/example.org/settings` | 403 | a vHostName that is no vhost: 403 'The entity does not exist.' |
+| 75 | v1 | `GET /en/rapi/subdomainSetting/map.example.org` | 200 | a vhost without own settings: domain is [] (a JSON list) |
+| 76 | v1 | `GET /en/rapi/subdomainSetting/map.example.org?flat` | 200 | ?flat of that vhost (v1: numbers as strings) |
+| 77 | v1 | `POST /en/rapi/subdomainSetting/map.example.org` | 200 | update with the unchanged own settings ({}): accepted, answer echoes them in targetObject |
+| 78 | v2 | `GET /domain/1140/map.example.org/settings` | 200 | v2: same structure as v1 |
+| 79 | v2 | `GET /domain/1140/map.example.org/settings?flat` | 200 | ?flat in v2 too (not in the spec); v2 sends numbers as numbers |
+| 80 | v2 | `POST /domain/1140/map.example.org/settings` | 200 | v2 update: answer in data (the GET answers in targetObject) |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.

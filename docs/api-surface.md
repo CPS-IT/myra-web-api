@@ -114,12 +114,14 @@ _done; reads and writes captured (56–68); v2 path has the vhost before the are
 
 ## Subdomain settings
 
+_done; reads captured, write probed with the unchanged (empty) own settings (69–80) — replace vs. merge on update is NOT verified_
+
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
-| v1 | `GET /{lang}/rapi/subdomainSetting/{domain}?flat` | read | R | – |
-| v1 | `POST /{lang}/rapi/subdomainSetting/{domain}` | write | – | – |
-| v2 | `GET /domain/{domainId}/{vHostName}/settings` | read | R | – |
-| v2 | `POST /domain/{domainId}/{vHostName}/settings` | write | – | – |
+| v1 | `GET /{lang}/rapi/subdomainSetting/{domain}?flat` | read | R | ✓ |
+| v1 | `POST /{lang}/rapi/subdomainSetting/{domain}` | write | W | ✓ |
+| v2 | `GET /domain/{domainId}/{vHostName}/settings` | read | R | ✓ |
+| v2 | `POST /domain/{domainId}/{vHostName}/settings` | write | W | ✓ |
 
 ## Load balancing
 

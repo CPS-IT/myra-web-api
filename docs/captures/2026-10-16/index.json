@@ -698,5 +698,125 @@
         "status": 204,
         "finding": "v2 delete: HTTP 204, empty",
         "file": "v2-0068-cachesettings-cleanup.json"
+    },
+    {
+        "case": "69",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/subdomainSetting/example.com",
+        "status": 200,
+        "finding": "subdomain settings: targetObject = 5 inheritance layers, domain = the vhost's own, parent = inherited (the manual's structure is outdated)",
+        "file": "v1-0069-v1 by domain-en-rapi-subdomainSetting-example-com.json"
+    },
+    {
+        "case": "70",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/subdomainSetting/www.example.com",
+        "status": 200,
+        "finding": "a vhost with own settings: domain holds them, the last layer equals domain",
+        "file": "v1-0070-v1 by subdomain-en-rapi-subdomainSetting-www-example-com.json"
+    },
+    {
+        "case": "71",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/subdomainSetting/example.com?flat=",
+        "status": 200,
+        "finding": "?flat: the merged settings as a plain map, no envelope; v1 sends numbers as strings",
+        "file": "v1-0071-v1 by domain-en-rapi-subdomainSetting-example-com-flat.json"
+    },
+    {
+        "case": "72",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/subdomainSetting/www.example.org",
+        "status": 500,
+        "finding": "v1, a subdomain that is no vhost: HTTP 500, empty HTML",
+        "file": "v1-0072-v1 by subdomain-en-rapi-subdomainSetting-www-example-org.json"
+    },
+    {
+        "case": "73",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/example.com/settings",
+        "status": 200,
+        "finding": "v2 GET answers in targetObject like v1 (not data)",
+        "file": "v2-0073-v2 by vhost-domain-1000-example-com-settings.json"
+    },
+    {
+        "case": "74",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/example.org/settings",
+        "status": 403,
+        "finding": "a vHostName that is no vhost: 403 'The entity does not exist.'",
+        "file": "v2-0074-v2 by vhost-domain-1140-example-org-settings.json"
+    },
+    {
+        "case": "75",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/subdomainSetting/map.example.org",
+        "status": 200,
+        "finding": "a vhost without own settings: domain is [] (a JSON list)",
+        "file": "v1-0075-settings-get.json"
+    },
+    {
+        "case": "76",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/subdomainSetting/map.example.org?flat",
+        "status": 200,
+        "finding": "?flat of that vhost (v1: numbers as strings)",
+        "file": "v1-0076-settings-get-flat.json"
+    },
+    {
+        "case": "77",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/subdomainSetting/map.example.org",
+        "status": 200,
+        "finding": "update with the unchanged own settings ({}): accepted, answer echoes them in targetObject",
+        "file": "v1-0077-settings-update-unchanged.json"
+    },
+    {
+        "case": "78",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/map.example.org/settings",
+        "status": 200,
+        "finding": "v2: same structure as v1",
+        "file": "v2-0078-settings-get.json"
+    },
+    {
+        "case": "79",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/map.example.org/settings?flat",
+        "status": 200,
+        "finding": "?flat in v2 too (not in the spec); v2 sends numbers as numbers",
+        "file": "v2-0079-settings-get-flat.json"
+    },
+    {
+        "case": "80",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/domain/1140/map.example.org/settings",
+        "status": 200,
+        "finding": "v2 update: answer in data (the GET answers in targetObject)",
+        "file": "v2-0080-settings-update-unchanged.json"
     }
 ]

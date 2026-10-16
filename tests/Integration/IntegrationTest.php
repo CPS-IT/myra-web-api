@@ -205,6 +205,24 @@ final class IntegrationTest extends TestCase
      * @param Closure(): Authentication $auth
      */
     #[DataProvider('clients')]
+    public function testReadsAndUpdatesSubdomainSettings(string $version, Closure $auth): void
+    {
+        $settings = self::client($version, $auth())->subdomainSettings();
+
+        $www = $settings->get('www.example.com');
+        self::assertSame(['antibot_post_flood', 'antibot_post_flood_threshold'], array_keys($www->own()));
+        self::assertCount(94, $settings->effective('www.example.com'));
+        self::assertSame($www->own(), $settings->update('www.example.com', $www->own())->own());
+        $writes = array_values(array_filter(self::requests(), static fn(string $r): bool => str_starts_with($r, 'POST')));
+        self::assertSame([$version === 'v1' ? 'POST /en/rapi/subdomainSetting/www.example.com' : 'POST /domain/1000/www.example.com/settings'], $writes);
+        self::assertAllAuthenticated();
+    }
+
+    /**
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
     public function testAHostOutsideTheDomainIsRejected(string $version, Closure $auth): void
     {
         try {

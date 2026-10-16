@@ -23,4 +23,6 @@ interface Client
     public function ipFilters(): IpFilters;
 
     public function cacheSettings(): CacheSettings;
+
+    public function subdomainSettings(): SubdomainSettings;
 }
