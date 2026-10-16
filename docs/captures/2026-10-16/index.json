@@ -1,0 +1,182 @@
+[
+    {
+        "case": "1",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/dnsRecords/example.com/1",
+        "status": 200,
+        "finding": "DNS records of a domain",
+        "file": "v1-0001-dns-records-of-a-domain.json"
+    },
+    {
+        "case": "2",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "PUT",
+        "path": "/en/rapi/cacheClear/example.com",
+        "status": 200,
+        "finding": "cache clear, single resource",
+        "file": "v1-0002-cache-clear-single-resource.json"
+    },
+    {
+        "case": "3",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "PUT",
+        "path": "/en/rapi/cacheClear/example.com",
+        "status": 200,
+        "finding": "cache clear, bulk",
+        "file": "v1-0003-cache-clear-bulk.json"
+    },
+    {
+        "case": "4",
+        "apiVersion": "v1",
+        "auth": "HMAC (wrong secret)",
+        "method": "GET",
+        "path": "/en/rapi/dnsRecords/example.com/1",
+        "status": 403,
+        "finding": "wrong credentials: text/plain body, no envelope",
+        "file": "v1-0004-wrong-credentials.json"
+    },
+    {
+        "case": "5",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/dnsRecords/does-not-exist.invalid/1",
+        "status": 403,
+        "finding": "unknown domain: EMPTY body, indistinguishable from an auth failure",
+        "file": "v1-0005-unknown-domain.json"
+    },
+    {
+        "case": "6.1",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "PUT",
+        "path": "/en/rapi/cacheClear/example.com",
+        "status": 403,
+        "finding": "malformed body",
+        "file": "v1-06_1-malformed-body.json"
+    },
+    {
+        "case": "6.2",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "PUT",
+        "path": "/en/rapi/cacheClear/example.com",
+        "status": 403,
+        "finding": "fqdn not in the domain: violation with code",
+        "file": "v1-06_2-fqdn-not-in-the-domain.json"
+    },
+    {
+        "case": "7",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domains",
+        "status": 200,
+        "finding": "domain list (name -> id)",
+        "file": "v2-0007-domain-list.json"
+    },
+    {
+        "case": "8",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/dns-records",
+        "status": 200,
+        "finding": "DNS records of a domain",
+        "file": "v2-0008-dns-records-of-a-domain.json"
+    },
+    {
+        "case": "9",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1000/cache-clear",
+        "status": 200,
+        "finding": "cache clear, single resource (sends error:false although the spec omits it)",
+        "file": "v2-0009-cache-clear-single-resource.json"
+    },
+    {
+        "case": "10",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1000/cache-clear",
+        "status": 200,
+        "finding": "cache clear, bulk",
+        "file": "v2-0010-cache-clear-bulk.json"
+    },
+    {
+        "case": "11",
+        "apiVersion": "v2",
+        "auth": "Bearer (wrong token)",
+        "method": "GET",
+        "path": "/domains",
+        "status": 403,
+        "finding": "wrong credentials: EMPTY body",
+        "file": "v2-0011-wrong-credentials.json"
+    },
+    {
+        "case": "12",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/999999999/dns-records",
+        "status": 403,
+        "finding": "unknown domain id (without any token once: 401 {\"error\":\"Session has been revoked\"})",
+        "file": "v2-0012-unknown-domain-id.json"
+    },
+    {
+        "case": "13.1",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1000/cache-clear",
+        "status": 403,
+        "finding": "malformed body (same answer even without a domain id)",
+        "file": "v2-13_1-malformed-body.json"
+    },
+    {
+        "case": "13.2",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1000/cache-clear",
+        "status": 403,
+        "finding": "fqdn not in the domain: violation with code",
+        "file": "v2-13_2-fqdn-not-in-the-domain.json"
+    },
+    {
+        "case": "14",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1000/cache-clear",
+        "status": 403,
+        "finding": "wrong type: violation with propertyPath",
+        "file": "v2-0014-wrong-type.json"
+    },
+    {
+        "case": "15",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/example.com/cache-clear",
+        "status": 403,
+        "finding": "domain NAME instead of id: rejected, v2 needs the id",
+        "file": "v2-0015-domain-name-instead-of-id.json"
+    },
+    {
+        "case": "16",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domains?page=2",
+        "status": 200,
+        "finding": "paging: ?page=2 honoured, empty data past the last page, count = total",
+        "file": "v2-0016-domain-list-page-2.json"
+    }
+]
