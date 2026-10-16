@@ -20,6 +20,8 @@ declare(strict_types=1);
  * - dns: a TXT record __probe__.<domain> and an A record myra-web-api-probe.<domain> →
  *   192.0.2.1 (documentation range), both inactive (not proxied), the A record with changed
  *   load balancing settings; both deleted again;
+ * - maintenance: a maintenance page for 2099 (v2: also active=false) — deleted at once and
+ *   the run aborted if Myra reports it active; v2 maintenance templates (stored HTML only);
  * - settings: the vhost's OWN subdomain settings, read and posted back UNCHANGED (a no-op
  *   whether Myra replaces or merges them), read again and compared — restored if different;
  * - cachesettings: a DISABLED rule for the exact path /__probe__/ (ttl -1 = no cache);
@@ -40,10 +42,13 @@ use Myracloud\WebApi\Exception\RequestRejectedException;
 use Myracloud\WebApi\Model\CacheSetting;
 use Myracloud\WebApi\Model\DnsRecord;
 use Myracloud\WebApi\Model\IpFilter;
+use Myracloud\WebApi\Model\Maintenance;
+use Myracloud\WebApi\Model\MaintenanceTemplate;
 use Myracloud\WebApi\Model\Redirect;
 use Myracloud\WebApi\V1;
 use Myracloud\WebApi\V2;
 use Psr\Http\Message\RequestInterface;
+use RuntimeException;
 use stdClass;
 use Throwable;
 
@@ -102,7 +107,7 @@ if ($vhosts === []) {
     exit(2);
 }
 $vhost = $vhosts[0];
-$guard = new WriteGuard($vhost, $domainId, ['redirects', 'ipfilter', 'ip-filters', 'cacheSettings', 'cache-settings', 'subdomainSetting', 'settings'], ['import'], $domain, ['dnsRecords', 'dns-records']);
+$guard = new WriteGuard($vhost, $domainId, ['redirects', 'ipfilter', 'ip-filters', 'cacheSettings', 'cache-settings', 'subdomainSetting', 'settings', 'maintenance', 'maintenances'], ['import'], $domain, ['dnsRecords', 'dns-records', 'maintenance-templates']);
 $shownVhost = $anonymizer->value($vhost);
 $shownId = $anonymizer->value($domainId, 'id');
 printf("Target: %s (domain %s)\n", is_string($shownVhost) ? $shownVhost : '?', is_int($shownId) ? (string) $shownId : '?');
@@ -299,6 +304,57 @@ if (in_array('dns', $areas, true)) {
             }
 
             return array_values(array_map(static fn(DnsRecord $r): string => 'DNS record ' . $r->id(), array_filter($records->list($domain), $isProbe)));
+        });
+    }
+}
+
+// ------------------------------------------------------------------ maintenance
+
+if (in_array('maintenance', $areas, true)) {
+    foreach (['v1' => $v1, 'v2' => $v2] as $version => $client) {
+        $maintenances = $client->maintenances();
+        $isProbe = static fn(Maintenance $m): bool => str_starts_with($m->start(), '2099-') && str_contains((string) $m->content(), '__probe__');
+        $run('maintenance', $version, static function () use ($maintenances, $client, $version, $vhost, $domain, $record, $stale): void {
+            $created = $maintenances->create(new Maintenance($vhost, '2099-01-01T00:00:00+0000', '2099-01-01T01:00:00+0000', '<html>__probe__</html>', false));
+            $record('maintenance', $version, 'create');
+            if ($created->isActive()) {
+                $maintenances->delete($created);
+                $record('maintenance', $version, 'emergency-delete');
+                throw new RuntimeException('Myra reported the 2099 probe maintenance ACTIVE — deleted at once.');
+            }
+            $updated = $maintenances->update($created->withContent('<html>__probe__ updated</html>'));
+            $record('maintenance', $version, 'update');
+            $stale(static fn() => $maintenances->update($created->withContent('<html>__probe__ stale</html>')));
+            $record('maintenance', $version, 'update-stale');
+            if ($client instanceof V2\Client) {
+                $client->maintenances()->get($domain, (int) $updated->id());
+                $record('maintenance', $version, 'get');
+                $client->maintenances()->forDomain($domain, true);
+                $record('maintenance', $version, 'for-domain');
+                $templates = $client->maintenanceTemplates();
+                $template = $templates->create($domain, new MaintenanceTemplate('__probe__', '<html>__probe__</html>'));
+                $record('maintenance', $version, 'template-create');
+                $template = $templates->update($domain, $template->withContent('<html>__probe__ updated</html>'));
+                $record('maintenance', $version, 'template-update');
+                $templates->list($domain);
+                $record('maintenance', $version, 'template-list');
+                $templates->delete($domain, $template);
+                $record('maintenance', $version, 'template-delete');
+            }
+        }, static function () use ($maintenances, $client, $vhost, $domain, $isProbe): array {
+            foreach (array_filter($maintenances->list($vhost), $isProbe) as $probe) {
+                $maintenances->delete($probe);
+            }
+            $left = array_values(array_map(static fn(Maintenance $m): string => 'maintenance ' . $m->id(), array_filter($maintenances->list($vhost), $isProbe)));
+            if ($client instanceof V2\Client) {
+                $templates = $client->maintenanceTemplates();
+                foreach (array_filter($templates->list($domain), static fn(MaintenanceTemplate $t): bool => $t->name() === '__probe__') as $template) {
+                    $templates->delete($domain, $template);
+                    $left[] = 'maintenance template ' . $template->id() . ' (deleted in cleanup)';
+                }
+            }
+
+            return array_values(array_filter($left, static fn(string $l): bool => !str_ends_with($l, '(deleted in cleanup)')));
         });
     }
 }
