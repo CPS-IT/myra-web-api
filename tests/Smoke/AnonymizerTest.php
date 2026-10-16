@@ -176,6 +176,15 @@ final class AnonymizerTest extends TestCase
         );
     }
 
+    public function testCertificateHashesStayHexPairs(): void
+    {
+        $result = $this->anonymizer->value(['fingerprint' => 'AB:CD:EF:01', 'serialNumber' => '0A:1B', 'again' => ['fingerprint' => 'AB:CD:EF:01']]);
+
+        self::assertSame(['fingerprint' => '00:00:00:01', 'serialNumber' => '00:02', 'again' => ['fingerprint' => '00:00:00:01']], $result);
+        self::assertSame([], $this->anonymizer->leaks((string) json_encode($result), $result));
+        self::assertNotSame([], $this->anonymizer->leaks('{"x":"AB:CD:EF:01"}'));
+    }
+
     public function testAPathOfWordsAndTimestampsIsNoBase64(): void
     {
         self::assertSame([], $this->anonymizer->leaks('{"path":"/statistics/histogram/1792051200/1792058399/total-requests/hourly/0/1"}'));

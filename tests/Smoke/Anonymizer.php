@@ -90,6 +90,9 @@ final class Anonymizer
         if ($key === 'objectType') {
             return $value; // class names (RedirectVO, …): structure, not data
         }
+        if (is_string($value) && in_array($key, ['fingerprint', 'serialNumber'], true) && preg_match('/^[0-9A-F]{2}(:[0-9A-F]{2})+$/i', $value) === 1) {
+            return $this->hexPairs($value); // certificate hashes: fake bytes, not an IPv6 address
+        }
         if (is_string($value) && ($key === 'message' || preg_match('/^[a-z]{2}$/', $key) === 1)) {
             return $this->text($value); // Myra's messages (violations, translations): prose stays, data goes
         }
@@ -369,6 +372,20 @@ final class Anonymizer
         [, $prefix] = array_pad(explode('/', $ip, 2), 2, null);
 
         return '2001:db8::' . dechex(256 + $this->next('ipv6')) . ($prefix === null ? '' : '/' . $prefix);
+    }
+
+    /**
+     * Same number of colon-separated bytes, counted up: …:00:01, …:00:02
+     */
+    private function hexPairs(string $value): string
+    {
+        if (!isset($this->strings[$value])) {
+            $bytes = substr_count($value, ':') + 1;
+            $fake = str_pad(strtoupper(dechex($this->next('hex'))), 2 * $bytes, '0', STR_PAD_LEFT);
+            $this->remember($value, implode(':', str_split($fake, 2)), 'hex');
+        }
+
+        return $this->strings[$value];
     }
 
     private function id(int $id): int
