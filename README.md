@@ -1,10 +1,10 @@
 ## Requirements
 
 * PHP: ^8.1
-* guzzlehttp/guzzle: ^7.8
+* guzzlehttp/guzzle: ^7.8 || ^8.0
 * s1lentium/iptools: ^1.2
-* symfony/console: ^6.4 || ^7.0
-* symfony/yaml: ^6.4 || ^7.0
+* symfony/console: ^6.4 || ^7.0 || ^8.0
+* symfony/yaml: ^6.4 || ^7.0 || ^8.0
 
 Myra PHP Web API Client
 ======
