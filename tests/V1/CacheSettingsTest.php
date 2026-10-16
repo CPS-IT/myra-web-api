@@ -21,6 +21,7 @@ use PHPUnit\Framework\TestCase;
  */
 #[CoversClass(V1\CacheSettings::class)]
 #[UsesClass(V1\SubdomainSettings::class)]
+#[UsesClass(V1\Maintenances::class)]
 #[UsesClass(V1\Client::class)]
 #[UsesClass(V1\Domains::class)]
 #[UsesClass(V1\DnsRecords::class)]

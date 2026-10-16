@@ -135,24 +135,24 @@ _v2 ops are in Dns Record (load-balancing)_
 
 ## Maintenance
 
-_writes can take a site down: ask separately_
+_done; probed with a maintenance for 2099 (never active) and v2 templates (98–113); Myra returns times in its own offset (same instant); v2 create answers 200_
 
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
-| v1 | `GET /{lang}/rapi/maintenance/{domain}/{page}` | read | R∅ | – |
-| v1 | `PUT /{lang}/rapi/maintenance/{domain}` | write | – | – |
-| v1 | `POST /{lang}/rapi/maintenance/{domain}` | write | – | – |
-| v1 | `DELETE /{lang}/rapi/maintenance/{domain}` | write | – | – |
-| v2 | `GET /domain/{domainId}/{vHostName}/maintenances` | read | R∅ | – |
-| v2 | `POST /domain/{domainId}/{vHostName}/maintenances` | write | – | – |
-| v2 | `PUT /domain/{domainId}/{vHostName}/maintenances/{id}` | write | – | – |
-| v2 | `DELETE /domain/{domainId}/{vHostName}/maintenances/{id}` | write | – | – |
-| v2 | `GET /domain/{domainId}/maintenances/{id}` | read | – | – |
-| v2 | `GET /domain/{domainId}/maintenances` | read | R∅ | – |
-| v2 | `GET /domain/{domainId}/maintenance-templates` | read | R∅ | – |
-| v2 | `POST /domain/{domainId}/maintenance-templates` | write | – | – |
-| v2 | `PUT /domain/{domainId}/maintenance-templates/{id}` | write | – | – |
-| v2 | `DELETE /domain/{domainId}/maintenance-templates/{id}` | write | – | – |
+| v1 | `GET /{lang}/rapi/maintenance/{domain}/{page}` | read | R | ✓ |
+| v1 | `PUT /{lang}/rapi/maintenance/{domain}` | write | W | ✓ |
+| v1 | `POST /{lang}/rapi/maintenance/{domain}` | write | W | ✓ |
+| v1 | `DELETE /{lang}/rapi/maintenance/{domain}` | write | W | ✓ |
+| v2 | `GET /domain/{domainId}/{vHostName}/maintenances` | read | R | ✓ |
+| v2 | `POST /domain/{domainId}/{vHostName}/maintenances` | write | W | ✓ |
+| v2 | `PUT /domain/{domainId}/{vHostName}/maintenances/{id}` | write | W | ✓ |
+| v2 | `DELETE /domain/{domainId}/{vHostName}/maintenances/{id}` | write | W | ✓ |
+| v2 | `GET /domain/{domainId}/maintenances/{id}` | read | R | ✓ |
+| v2 | `GET /domain/{domainId}/maintenances` | read | R | ✓ |
+| v2 | `GET /domain/{domainId}/maintenance-templates` | read | R | ✓ |
+| v2 | `POST /domain/{domainId}/maintenance-templates` | write | W | ✓ |
+| v2 | `PUT /domain/{domainId}/maintenance-templates/{id}` | write | W | ✓ |
+| v2 | `DELETE /domain/{domainId}/maintenance-templates/{id}` | write | W | ✓ |
 
 ## SSL certificates
 

@@ -120,6 +120,22 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 95 | v2 | `PUT /domain/1140/dns-records/90011` | 200 | load balancing changed through the normal update in v2 too (weight 1 → 2) |
 | 96 | v2 | `PUT /domain/1140/dns-records/90011/load-balancing` | 500 | PUT …/{id}/load-balancing: HTTP 500 'An internal error occurred' for the inactive probe record (also with the upstream object's own id) — unverified |
 | 97 | v2 | `DELETE /domain/1140/dns-records/90009` | 204 | v2 delete: HTTP 204 |
+| 98 | v1 | `PUT /en/rapi/maintenance/map.example.org` | 200 | v1 create (probe: 2099, never active): Myra returns start/end in its own offset (+0100) — the same instant |
+| 99 | v1 | `POST /en/rapi/maintenance/map.example.org` | 200 | v1 update: the complete object as read, changes on top |
+| 100 | v1 | `POST /en/rapi/maintenance/map.example.org` | 200 | stale modified: HTTP 200 + error: true |
+| 101 | v1 | `GET /en/rapi/maintenance/map.example.org/1` | 200 | list of the vhost with the probe |
+| 102 | v1 | `DELETE /en/rapi/maintenance/map.example.org` | 200 | v1 delete: body {id, fqdn} as the manual says |
+| 103 | v2 | `POST /domain/1140/map.example.org/maintenances` | 200 | v2 create: HTTP 200 (not 201), active settable (sent false) |
+| 104 | v2 | `PUT /domain/1140/map.example.org/maintenances/90003` | 200 | v2 update: PUT …/maintenances/{id} |
+| 105 | v2 | `PUT /domain/1140/map.example.org/maintenances/90003` | 400 | stale modified: HTTP 400 |
+| 106 | v2 | `GET /domain/1140/maintenances/90003` | 200 | domain-wide get by id: adds permissions |
+| 107 | v2 | `GET /domain/1140/maintenances?presentAndFuture=true` | 200 | domain-wide list with presentAndFuture=true |
+| 108 | v2 | `POST /domain/1140/maintenance-templates` | 201 | template create: HTTP 201 (stored HTML only) |
+| 109 | v2 | `PUT /domain/1140/maintenance-templates/90004` | 200 | template update with id + modified |
+| 110 | v2 | `GET /domain/1140/maintenance-templates` | 200 | template list |
+| 111 | v2 | `DELETE /domain/1140/maintenance-templates/90004` | 204 | template delete: HTTP 204 |
+| 112 | v2 | `GET /domain/1140/map.example.org/maintenances` | 200 | list of the vhost with the probe |
+| 113 | v2 | `DELETE /domain/1140/map.example.org/maintenances/90003` | 204 | v2 delete: HTTP 204 |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.

@@ -988,5 +988,165 @@
         "status": 204,
         "finding": "v2 delete: HTTP 204",
         "file": "v2-0097-dns-cleanup.json"
+    },
+    {
+        "case": "98",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "PUT",
+        "path": "/en/rapi/maintenance/map.example.org",
+        "status": 200,
+        "finding": "v1 create (probe: 2099, never active): Myra returns start/end in its own offset (+0100) \u2014 the same instant",
+        "file": "v1-0098-maintenance-create.json"
+    },
+    {
+        "case": "99",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/maintenance/map.example.org",
+        "status": 200,
+        "finding": "v1 update: the complete object as read, changes on top",
+        "file": "v1-0099-maintenance-update.json"
+    },
+    {
+        "case": "100",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/maintenance/map.example.org",
+        "status": 200,
+        "finding": "stale modified: HTTP 200 + error: true",
+        "file": "v1-0100-maintenance-update-stale.json"
+    },
+    {
+        "case": "101",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/maintenance/map.example.org/1",
+        "status": 200,
+        "finding": "list of the vhost with the probe",
+        "file": "v1-0101-maintenance-cleanup.json"
+    },
+    {
+        "case": "102",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "DELETE",
+        "path": "/en/rapi/maintenance/map.example.org",
+        "status": 200,
+        "finding": "v1 delete: body {id, fqdn} as the manual says",
+        "file": "v1-0102-maintenance-cleanup.json"
+    },
+    {
+        "case": "103",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/domain/1140/map.example.org/maintenances",
+        "status": 200,
+        "finding": "v2 create: HTTP 200 (not 201), active settable (sent false)",
+        "file": "v2-0103-maintenance-create.json"
+    },
+    {
+        "case": "104",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1140/map.example.org/maintenances/90003",
+        "status": 200,
+        "finding": "v2 update: PUT \u2026/maintenances/{id}",
+        "file": "v2-0104-maintenance-update.json"
+    },
+    {
+        "case": "105",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1140/map.example.org/maintenances/90003",
+        "status": 400,
+        "finding": "stale modified: HTTP 400",
+        "file": "v2-0105-maintenance-update-stale.json"
+    },
+    {
+        "case": "106",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/maintenances/90003",
+        "status": 200,
+        "finding": "domain-wide get by id: adds permissions",
+        "file": "v2-0106-maintenance-get.json"
+    },
+    {
+        "case": "107",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/maintenances?presentAndFuture=true",
+        "status": 200,
+        "finding": "domain-wide list with presentAndFuture=true",
+        "file": "v2-0107-maintenance-for-domain.json"
+    },
+    {
+        "case": "108",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/domain/1140/maintenance-templates",
+        "status": 201,
+        "finding": "template create: HTTP 201 (stored HTML only)",
+        "file": "v2-0108-maintenance-template-create.json"
+    },
+    {
+        "case": "109",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1140/maintenance-templates/90004",
+        "status": 200,
+        "finding": "template update with id + modified",
+        "file": "v2-0109-maintenance-template-update.json"
+    },
+    {
+        "case": "110",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/maintenance-templates",
+        "status": 200,
+        "finding": "template list",
+        "file": "v2-0110-maintenance-template-list.json"
+    },
+    {
+        "case": "111",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "DELETE",
+        "path": "/domain/1140/maintenance-templates/90004",
+        "status": 204,
+        "finding": "template delete: HTTP 204",
+        "file": "v2-0111-maintenance-template-delete.json"
+    },
+    {
+        "case": "112",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/map.example.org/maintenances",
+        "status": 200,
+        "finding": "list of the vhost with the probe",
+        "file": "v2-0112-maintenance-cleanup.json"
+    },
+    {
+        "case": "113",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "DELETE",
+        "path": "/domain/1140/map.example.org/maintenances/90003",
+        "status": 204,
+        "finding": "v2 delete: HTTP 204",
+        "file": "v2-0113-maintenance-cleanup.json"
     }
 ]

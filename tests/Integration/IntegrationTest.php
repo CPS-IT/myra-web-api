@@ -17,6 +17,8 @@ use Myracloud\WebApi\Model\CacheSetting;
 use Myracloud\WebApi\Model\DnsRecord;
 use Myracloud\WebApi\Model\Domain;
 use Myracloud\WebApi\Model\IpFilter;
+use Myracloud\WebApi\Model\Maintenance;
+use Myracloud\WebApi\Model\MaintenanceTemplate;
 use Myracloud\WebApi\Model\Redirect;
 use Myracloud\WebApi\Model\UpstreamOptions;
 use Myracloud\WebApi\V1;
@@ -233,6 +235,29 @@ final class IntegrationTest extends TestCase
         $updated = $records->update('example.com', $created->withValue('probe 2')->withUpstreamOptions(new UpstreamOptions(weight: 2, id: 1, modified: 'm')));
         $records->delete('example.com', $updated);
         self::assertSame(['probe 2', 2], [$updated->value(), $updated->upstreamOptions()?->weight()]);
+        self::assertAllAuthenticated();
+    }
+
+    /**
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testManagesMaintenances(string $version, Closure $auth): void
+    {
+        $client = self::client($version, $auth());
+        $maintenances = $client->maintenances();
+
+        self::assertCount(1, $maintenances->list('www.example.com'));
+        $created = $maintenances->create(new Maintenance('www.example.com', '2099-01-01T00:00:00+0000', '2099-01-01T01:00:00+0000', '<html>x</html>'));
+        $updated = $maintenances->update($created->withContent('<html>y</html>'));
+        $maintenances->delete($updated);
+        self::assertSame('<html>y</html>', $updated->content());
+        if ($client instanceof V2\Client) {
+            self::assertCount(1, $client->maintenances()->forDomain('example.com', true));
+            $template = $client->maintenanceTemplates()->create('example.com', new MaintenanceTemplate('t', '<html/>'));
+            $client->maintenanceTemplates()->delete('example.com', $client->maintenanceTemplates()->update('example.com', $template->withName('u')));
+        }
         self::assertAllAuthenticated();
     }
 

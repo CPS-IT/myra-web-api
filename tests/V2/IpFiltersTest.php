@@ -18,6 +18,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V2\IpFilters::class)]
 #[UsesClass(V2\CacheSettings::class)]
 #[UsesClass(V2\SubdomainSettings::class)]
+#[UsesClass(V2\Maintenances::class)]
+#[UsesClass(V2\MaintenanceTemplates::class)]
 #[UsesClass(V2\Client::class)]
 #[UsesClass(V2\Domains::class)]
 #[UsesClass(V2\DnsRecords::class)]

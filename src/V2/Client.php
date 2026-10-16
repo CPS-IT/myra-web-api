@@ -32,6 +32,8 @@ final readonly class Client implements Contract\Client
     private IpFilters $ipFilters;
     private CacheSettings $cacheSettings;
     private SubdomainSettings $subdomainSettings;
+    private Maintenances $maintenances;
+    private MaintenanceTemplates $maintenanceTemplates;
 
     /**
      * @param string $baseUri e.g. of a local emulator
@@ -53,6 +55,8 @@ final readonly class Client implements Contract\Client
         $this->ipFilters = new IpFilters($transport, $this->domainIds);
         $this->cacheSettings = new CacheSettings($transport, $this->domainIds);
         $this->subdomainSettings = new SubdomainSettings($transport, $this->domainIds);
+        $this->maintenances = new Maintenances($transport, $this->domainIds);
+        $this->maintenanceTemplates = new MaintenanceTemplates($transport, $this->domainIds);
     }
 
     public function domains(): Domains
@@ -88,6 +92,19 @@ final readonly class Client implements Contract\Client
     public function subdomainSettings(): SubdomainSettings
     {
         return $this->subdomainSettings;
+    }
+
+    public function maintenances(): Maintenances
+    {
+        return $this->maintenances;
+    }
+
+    /**
+     * Stored maintenance pages of a domain (v2 only).
+     */
+    public function maintenanceTemplates(): MaintenanceTemplates
+    {
+        return $this->maintenanceTemplates;
     }
 
     /**

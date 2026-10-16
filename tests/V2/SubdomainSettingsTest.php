@@ -14,6 +14,8 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(V2\SubdomainSettings::class)]
+#[UsesClass(V2\Maintenances::class)]
+#[UsesClass(V2\MaintenanceTemplates::class)]
 #[UsesClass(V2\Client::class)]
 #[UsesClass(V2\Domains::class)]
 #[UsesClass(V2\DnsRecords::class)]

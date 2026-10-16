@@ -23,6 +23,7 @@ declare(strict_types=1);
  *   stateless: nothing is stored, a stale `modified` is not detected; v2 lists of
  *   www.example.com are the v1 capture's objects in a v2 envelope; the IP filter export is
  *   built from the captured list;
+ * - maintenance: the account has none, so both vhosts answer the probe's captured list;
  * - DNS record writes are echoed in the captured shapes (stateless); the dedicated v2 load
  *   balancing PUT answers the captured HTTP 500;
  * - subdomain settings: v2 settings of www.example.com are the v1 capture, `?flat` answers
@@ -136,9 +137,11 @@ final class Emulator
         'redirects' => ['dir' => 'redirects', 'objectType' => 'DnsRedirectVO', 'lists' => ['example.com' => 'list-apex', 'www.example.com' => 'list-www'], 'get' => 90392],
         'ipfilter' => ['dir' => 'ipfilter', 'objectType' => 'IpFilterVO', 'lists' => ['example.com' => 'list-apex', 'www.example.com' => 'list-empty'], 'get' => 90393],
         'cachesettings' => ['dir' => 'cachesettings', 'objectType' => 'CacheSettingVO', 'lists' => ['example.com' => 'list-apex', 'www.example.com' => 'list-empty'], 'get' => 0],
+        // the account has no maintenance pages: both vhosts answer the probe's captured list
+        'maintenance' => ['dir' => 'maintenance', 'objectType' => 'MaintenanceVO', 'lists' => ['example.com' => 'list', 'www.example.com' => 'list'], 'get' => 0, 'created' => 200],
     ];
-    private const V1_AREAS = ['redirects' => 'redirects', 'ipfilter' => 'ipfilter', 'cacheSettings' => 'cachesettings'];
-    private const V2_AREAS = ['redirects' => 'redirects', 'ip-filters' => 'ipfilter', 'cache-settings' => 'cachesettings'];
+    private const V1_AREAS = ['redirects' => 'redirects', 'ipfilter' => 'ipfilter', 'cacheSettings' => 'cachesettings', 'maintenance' => 'maintenance'];
+    private const V2_AREAS = ['redirects' => 'redirects', 'ip-filters' => 'ipfilter', 'cache-settings' => 'cachesettings', 'maintenances' => 'maintenance'];
     /** v1 answers for a subdomain that is no vhost, where captured (otherwise an empty list). */
     private const V1_UNKNOWN = ['cachesettings' => 'v1/cachesettings/unknown-subdomain'];
 
@@ -218,7 +221,7 @@ final class Emulator
                 },
             preg_match('#^/subdomainSetting/([^/]+)$#', $route, $m) === 1
                 => $this->settings('v1', rawurldecode($m[1])),
-            preg_match('#^/(redirects|ipfilter|cacheSettings)/([^/]+)(/(\d+))?$#', $route, $m) === 1
+            preg_match('#^/(redirects|ipfilter|cacheSettings|maintenance)/([^/]+)(/(\d+))?$#', $route, $m) === 1
                 => $this->v1Vhost(self::V1_AREAS[$m[1]], rawurldecode($m[2]), isset($m[4]) ? (int) $m[4] : null),
             $this->method === 'PUT' && preg_match('#^/cacheClear/([^/]+)$#', $route, $m) === 1
                 => isset(self::DOMAINS[rawurldecode($m[1])])
@@ -241,7 +244,9 @@ final class Emulator
             preg_match('#^/domain/(\d+)/([^/]+)/settings$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
                 => $this->settings('v2', rawurldecode($m[2])),
             // areas with the vhost before the area name
-            preg_match('#^/domain/(\d+)/([^/]+)/(cache-settings)(/(\d+))?$#', $route, $m) === 1
+            preg_match('#^/domain/(\d+)/(maintenances|maintenance-templates)(/(\d+))?$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
+                => $this->v2DomainMaintenance($m[2], isset($m[4]) ? (int) $m[4] : null),
+            preg_match('#^/domain/(\d+)/([^/]+)/(cache-settings|maintenances)(/(\d+))?$#', $route, $m) === 1
                 => $this->v2Vhost(self::V2_AREAS[$m[3]], (int) $m[1], rawurldecode($m[2]), $m[5] ?? null, $page),
             preg_match('#^/domain/(\d+)/(load-balancing|vhost/\d+/dns-records|dns-records/(\d+)(/load-balancing)?)$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
                 => $this->v2DnsRecord((int) $m[1], $m[2], isset($m[3]) && $m[3] !== '' ? (int) $m[3] : null, $page),
@@ -322,10 +327,25 @@ final class Emulator
             $this->method === 'GET' && $id !== null => $id === $config['get'] ? Answer::fixture("v2/{$config['dir']}/get") : Answer::fixture('v2/redirects/unknown-vhost'),
             $this->method === 'GET' && $tail === 'export' => new Answer(200, 'text/csv; charset=UTF-8', $vhost === 'example.com' ? self::exportOf('v2/ipfilter/list-apex') : "IP,Expires on,Comments\n"),
             $this->method === 'POST' && $tail === 'import' => $this->import(),
-            $this->method === 'POST' && $tail === null => $this->written($config['objectType'], 'data', null, 201),
+            $this->method === 'POST' && $tail === null => $this->written($config['objectType'], 'data', null, $config['created'] ?? 201),
             $this->method === 'PUT' && $id !== null => $this->written($config['objectType'], 'data', $id),
             $this->method === 'DELETE' && $id !== null => new Answer(204, null, ''),
             default => self::notEmulated($this->method, "/domain/$domainId/$area/$vhost"),
+        };
+    }
+
+    /**
+     * Domain-wide maintenance pages and the templates, as captured.
+     */
+    private function v2DomainMaintenance(string $area, ?int $id): Answer
+    {
+        return match (true) {
+            $area === 'maintenances' && $this->method === 'GET' => $id === null ? Answer::fixture('v2/maintenance/for-domain') : Answer::fixture('v2/maintenance/get'),
+            $area === 'maintenance-templates' && $this->method === 'GET' && $id === null => Answer::fixture('v2/maintenance-templates/list'),
+            $area === 'maintenance-templates' && $this->method === 'POST' && $id === null => $this->written('MaintenanceTemplateVO', 'data', null, 201),
+            $area === 'maintenance-templates' && $this->method === 'PUT' && $id !== null => $this->written('MaintenanceTemplateVO', 'data', $id),
+            $area === 'maintenance-templates' && $this->method === 'DELETE' && $id !== null => new Answer(204, null, ''),
+            default => self::notEmulated($this->method, "/$area"),
         };
     }
 

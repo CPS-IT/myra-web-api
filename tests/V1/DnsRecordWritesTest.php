@@ -26,6 +26,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(V1\IpFilters::class)]
 #[UsesClass(V1\CacheSettings::class)]
 #[UsesClass(V1\SubdomainSettings::class)]
+#[UsesClass(V1\Maintenances::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
 #[UsesClass(\Myracloud\WebApi\Http\Transport::class)]
 #[UsesClass(\Myracloud\WebApi\Http\Envelope::class)]

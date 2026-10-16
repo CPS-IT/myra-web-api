@@ -25,6 +25,8 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(V2\IpFilters::class)]
 #[UsesClass(V2\CacheSettings::class)]
 #[UsesClass(V2\SubdomainSettings::class)]
+#[UsesClass(V2\Maintenances::class)]
+#[UsesClass(V2\MaintenanceTemplates::class)]
 #[CoversClass(V2\DomainIdResolver::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\HmacSignature::class)]
@@ -228,6 +230,12 @@ final class ClientTest extends TestCase
         self::assertSame($client->domains(), $client->domains());
         self::assertSame($client->dnsRecords(), $client->dnsRecords());
         self::assertSame($client->cacheClear(), $client->cacheClear());
+        self::assertSame($client->redirects(), $client->redirects());
+        self::assertSame($client->ipFilters(), $client->ipFilters());
+        self::assertSame($client->cacheSettings(), $client->cacheSettings());
+        self::assertSame($client->subdomainSettings(), $client->subdomainSettings());
+        self::assertSame($client->maintenances(), $client->maintenances());
+        self::assertSame($client->maintenanceTemplates(), $client->maintenanceTemplates());
     }
 
     private function client(): Client

@@ -25,4 +25,6 @@ interface Client
     public function cacheSettings(): CacheSettings;
 
     public function subdomainSettings(): SubdomainSettings;
+
+    public function maintenances(): Maintenances;
 }
