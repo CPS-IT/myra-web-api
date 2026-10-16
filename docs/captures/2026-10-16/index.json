@@ -568,5 +568,135 @@
         "status": 204,
         "finding": "v2 delete: HTTP 204, empty",
         "file": "v2-0055-ipfilter-cleanup.json"
+    },
+    {
+        "case": "56",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/cacheSettings/example.com/1",
+        "status": 200,
+        "finding": "cache settings of the apex: CacheSettingVO without a subdomain field",
+        "file": "v1-0056-v1 by domain-en-rapi-cacheSettings-example-com-1.json"
+    },
+    {
+        "case": "57",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/cacheSettings/www.example.com/1",
+        "status": 200,
+        "finding": "a vhost without rules: empty list",
+        "file": "v1-0057-v1 by subdomain-en-rapi-cacheSettings-www-example-com-1.json"
+    },
+    {
+        "case": "58",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/cacheSettings/www.example.org/1",
+        "status": 500,
+        "finding": "v1, a subdomain that is no vhost: HTTP 500, empty HTML \u2014 no envelope",
+        "file": "v1-0058-v1 by subdomain-en-rapi-cacheSettings-www-example-org-1.json"
+    },
+    {
+        "case": "59",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/example.com/cache-settings",
+        "status": 200,
+        "finding": "same CacheSettingVO as v1; path /domain/{id}/{vHostName}/cache-settings (vhost before area)",
+        "file": "v2-0059-v2 by vhost-domain-1000-example-com-cache-settings.json"
+    },
+    {
+        "case": "60",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/example.org/cache-settings",
+        "status": 403,
+        "finding": "a vHostName that is no vhost: 403 'The entity does not exist.'",
+        "file": "v2-0060-v2 by vhost-domain-1140-example-org-cache-settings.json"
+    },
+    {
+        "case": "61",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "PUT",
+        "path": "/en/rapi/cacheSettings/map.example.org",
+        "status": 200,
+        "finding": "v1 create (probe: disabled rule for the exact path /__probe__/); notFoundTtl defaults to 60",
+        "file": "v1-0061-cachesettings-create.json"
+    },
+    {
+        "case": "62",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/cacheSettings/map.example.org",
+        "status": 200,
+        "finding": "v1 update with id + modified",
+        "file": "v1-0062-cachesettings-update.json"
+    },
+    {
+        "case": "63",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/cacheSettings/map.example.org",
+        "status": 200,
+        "finding": "stale modified: HTTP 200 + error: true",
+        "file": "v1-0063-cachesettings-update-stale.json"
+    },
+    {
+        "case": "64",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "DELETE",
+        "path": "/en/rapi/cacheSettings/map.example.org",
+        "status": 200,
+        "finding": "v1 delete: body {id, modified}",
+        "file": "v1-0064-cachesettings-cleanup.json"
+    },
+    {
+        "case": "65",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/domain/1140/map.example.org/cache-settings",
+        "status": 201,
+        "finding": "v2 create: HTTP 201",
+        "file": "v2-0065-cachesettings-create.json"
+    },
+    {
+        "case": "66",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1140/map.example.org/cache-settings/90002",
+        "status": 200,
+        "finding": "v2 update: PUT \u2026/cache-settings/{id}",
+        "file": "v2-0066-cachesettings-update.json"
+    },
+    {
+        "case": "67",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1140/map.example.org/cache-settings/90002",
+        "status": 400,
+        "finding": "stale modified: HTTP 400",
+        "file": "v2-0067-cachesettings-update-stale.json"
+    },
+    {
+        "case": "68",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "DELETE",
+        "path": "/domain/1140/map.example.org/cache-settings/90002",
+        "status": 204,
+        "finding": "v2 delete: HTTP 204, empty",
+        "file": "v2-0068-cachesettings-cleanup.json"
     }
 ]

@@ -13,6 +13,7 @@ use Myracloud\WebApi\Contract\Client;
 use Myracloud\WebApi\Exception\AccessDeniedException;
 use Myracloud\WebApi\Exception\DomainNotFoundException;
 use Myracloud\WebApi\Exception\RequestRejectedException;
+use Myracloud\WebApi\Model\CacheSetting;
 use Myracloud\WebApi\Model\DnsRecord;
 use Myracloud\WebApi\Model\Domain;
 use Myracloud\WebApi\Model\IpFilter;
@@ -179,6 +180,23 @@ final class IntegrationTest extends TestCase
             self::assertStringStartsWith("IP,Expires on,Comments\n192.0.2.123/32,", $client->ipFilters()->export('example.com'));
             self::assertSame(['value: Please enter a valid IP-Range'], array_map('strval', $client->ipFilters()->import('www.example.com', IpFilter::TYPE_BLACKLIST, "192.0.2.2/32,,\nnot-an-ip,,\n")));
         }
+        self::assertAllAuthenticated();
+    }
+
+    /**
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testManagesCacheSettings(string $version, Closure $auth): void
+    {
+        $settings = self::client($version, $auth())->cacheSettings();
+
+        self::assertCount(19, $settings->list('example.com'));
+        $created = $settings->create(new CacheSetting('www.example.com', '/__probe__/', CacheSetting::TTL_NO_CACHE, CacheSetting::TYPE_EXACT, enabled: false));
+        $updated = $settings->update($created->withTtl(60));
+        $settings->delete($updated);
+        self::assertSame([60, 'www.example.com'], [$updated->ttl(), $updated->subdomain()]);
         self::assertAllAuthenticated();
     }
 

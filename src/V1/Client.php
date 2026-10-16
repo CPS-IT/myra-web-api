@@ -28,6 +28,7 @@ final readonly class Client implements Contract\Client
     private CacheClearing $cacheClear;
     private Redirects $redirects;
     private IpFilters $ipFilters;
+    private CacheSettings $cacheSettings;
 
     /**
      * @param string $language language of Myra's messages (violations): "en" or "de"
@@ -59,6 +60,7 @@ final readonly class Client implements Contract\Client
         $this->cacheClear = new CacheClearing($transport);
         $this->redirects = new Redirects($transport);
         $this->ipFilters = new IpFilters($transport);
+        $this->cacheSettings = new CacheSettings($transport);
     }
 
     public function domains(): Domains
@@ -84,5 +86,10 @@ final readonly class Client implements Contract\Client
     public function ipFilters(): IpFilters
     {
         return $this->ipFilters;
+    }
+
+    public function cacheSettings(): CacheSettings
+    {
+        return $this->cacheSettings;
     }
 }

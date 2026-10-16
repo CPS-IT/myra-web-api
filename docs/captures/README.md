@@ -78,6 +78,19 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 53 | v1 | `DELETE /en/rapi/ipfilter/map.example.org` | 200 | v1 delete: body {id, modified} |
 | 54 | v2 | `GET /domain/1140/ip-filters/map.example.org` | 200 | list after the imports: expireDate appears only when set |
 | 55 | v2 | `DELETE /domain/1140/ip-filters/map.example.org/90002` | 204 | v2 delete: HTTP 204, empty |
+| 56 | v1 | `GET /en/rapi/cacheSettings/example.com/1` | 200 | cache settings of the apex: CacheSettingVO without a subdomain field |
+| 57 | v1 | `GET /en/rapi/cacheSettings/www.example.com/1` | 200 | a vhost without rules: empty list |
+| 58 | v1 | `GET /en/rapi/cacheSettings/www.example.org/1` | 500 | v1, a subdomain that is no vhost: HTTP 500, empty HTML — no envelope |
+| 59 | v2 | `GET /domain/1000/example.com/cache-settings` | 200 | same CacheSettingVO as v1; path /domain/{id}/{vHostName}/cache-settings (vhost before area) |
+| 60 | v2 | `GET /domain/1140/example.org/cache-settings` | 403 | a vHostName that is no vhost: 403 'The entity does not exist.' |
+| 61 | v1 | `PUT /en/rapi/cacheSettings/map.example.org` | 200 | v1 create (probe: disabled rule for the exact path /__probe__/); notFoundTtl defaults to 60 |
+| 62 | v1 | `POST /en/rapi/cacheSettings/map.example.org` | 200 | v1 update with id + modified |
+| 63 | v1 | `POST /en/rapi/cacheSettings/map.example.org` | 200 | stale modified: HTTP 200 + error: true |
+| 64 | v1 | `DELETE /en/rapi/cacheSettings/map.example.org` | 200 | v1 delete: body {id, modified} |
+| 65 | v2 | `POST /domain/1140/map.example.org/cache-settings` | 201 | v2 create: HTTP 201 |
+| 66 | v2 | `PUT /domain/1140/map.example.org/cache-settings/90002` | 200 | v2 update: PUT …/cache-settings/{id} |
+| 67 | v2 | `PUT /domain/1140/map.example.org/cache-settings/90002` | 400 | stale modified: HTTP 400 |
+| 68 | v2 | `DELETE /domain/1140/map.example.org/cache-settings/90002` | 204 | v2 delete: HTTP 204, empty |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.

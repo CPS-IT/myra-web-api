@@ -19,7 +19,7 @@ declare(strict_types=1);
  * - v1 `recursive` not a boolean → the v2 wrong-type answer;
  * - paging (MYRA_EMULATOR_PAGE_SIZE cuts the captured lists), the echo of a cache clear
  *   (built like the captured ones) and the 404 "Not emulated" envelope;
- * - writes of per-vhost areas (redirects, IP filter) are echoed in the captured shapes but
+ * - writes of per-vhost areas (redirects, IP filter, cache settings) are echoed in the captured shapes but
  *   stateless: nothing is stored, a stale `modified` is not detected; v2 lists of
  *   www.example.com are the v1 capture's objects in a v2 envelope; the IP filter export is
  *   built from the captured list.
@@ -131,9 +131,12 @@ final class Emulator
     private const AREAS = [
         'redirects' => ['dir' => 'redirects', 'objectType' => 'DnsRedirectVO', 'lists' => ['example.com' => 'list-apex', 'www.example.com' => 'list-www'], 'get' => 90392],
         'ipfilter' => ['dir' => 'ipfilter', 'objectType' => 'IpFilterVO', 'lists' => ['example.com' => 'list-apex', 'www.example.com' => 'list-empty'], 'get' => 90393],
+        'cachesettings' => ['dir' => 'cachesettings', 'objectType' => 'CacheSettingVO', 'lists' => ['example.com' => 'list-apex', 'www.example.com' => 'list-empty'], 'get' => 0],
     ];
-    private const V1_AREAS = ['redirects' => 'redirects', 'ipfilter' => 'ipfilter'];
-    private const V2_AREAS = ['redirects' => 'redirects', 'ip-filters' => 'ipfilter'];
+    private const V1_AREAS = ['redirects' => 'redirects', 'ipfilter' => 'ipfilter', 'cacheSettings' => 'cachesettings'];
+    private const V2_AREAS = ['redirects' => 'redirects', 'ip-filters' => 'ipfilter', 'cache-settings' => 'cachesettings'];
+    /** v1 answers for a subdomain that is no vhost, where captured (otherwise an empty list). */
+    private const V1_UNKNOWN = ['cachesettings' => 'v1/cachesettings/unknown-subdomain'];
 
     /**
      * @param array<string, string> $headers lower-cased names
@@ -203,7 +206,7 @@ final class Emulator
                 => rawurldecode($m[1]) === 'example.com'
                     ? Answer::page('v1/dns-records/list', 'list', (int) $m[2])
                     : Answer::fixture('v1/errors/unknown-domain'),
-            preg_match('#^/(redirects|ipfilter)/([^/]+)(/(\d+))?$#', $route, $m) === 1
+            preg_match('#^/(redirects|ipfilter|cacheSettings)/([^/]+)(/(\d+))?$#', $route, $m) === 1
                 => $this->v1Vhost(self::V1_AREAS[$m[1]], rawurldecode($m[2]), isset($m[4]) ? (int) $m[4] : null),
             $this->method === 'PUT' && preg_match('#^/cacheClear/([^/]+)$#', $route, $m) === 1
                 => isset(self::DOMAINS[rawurldecode($m[1])])
@@ -223,6 +226,9 @@ final class Emulator
                 => Answer::page('v2/domains/list', 'data', $page),
             preg_match('#^/domain/(\d+)/(redirects|ip-filters)/([^/]+)(/(\d+|export|import))?$#', $route, $m) === 1
                 => $this->v2Vhost(self::V2_AREAS[$m[2]], (int) $m[1], rawurldecode($m[3]), $m[5] ?? null, $page),
+            // areas with the vhost before the area name
+            preg_match('#^/domain/(\d+)/([^/]+)/(cache-settings)(/(\d+))?$#', $route, $m) === 1
+                => $this->v2Vhost(self::V2_AREAS[$m[3]], (int) $m[1], rawurldecode($m[2]), $m[5] ?? null, $page),
             preg_match('#^/domain/([^/]+)/(dns-records|cache-clear)$#', $route, $m) === 1
                 => $this->v2Domain($m[1], $m[2], $page),
             default => self::notEmulated($this->method, $route),
@@ -252,6 +258,9 @@ final class Emulator
     {
         $config = self::AREAS[$area];
         $list = $config['lists'][$vhost] ?? null;
+        if ($list === null && isset(self::V1_UNKNOWN[$area]) && !in_array($vhost, array_keys(self::DOMAINS), true)) {
+            return Answer::fixture(self::V1_UNKNOWN[$area]);
+        }
 
         return match (true) {
             $this->method === 'GET' && $page !== null => Answer::page($list !== null ? "v1/{$config['dir']}/$list" : 'v1/redirects/list-empty', 'list', $page),

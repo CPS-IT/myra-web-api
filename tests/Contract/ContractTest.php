@@ -36,12 +36,14 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V1\CacheClearing::class)]
 #[CoversClass(V1\Redirects::class)]
 #[CoversClass(V1\IpFilters::class)]
+#[CoversClass(V1\CacheSettings::class)]
 #[CoversClass(V2\Client::class)]
 #[CoversClass(V2\Domains::class)]
 #[CoversClass(V2\DnsRecords::class)]
 #[CoversClass(V2\CacheClearing::class)]
 #[CoversClass(V2\Redirects::class)]
 #[CoversClass(V2\IpFilters::class)]
+#[CoversClass(V2\CacheSettings::class)]
 #[CoversClass(V2\DomainIdResolver::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\HmacSignature::class)]
@@ -57,6 +59,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(\Myracloud\WebApi\Model\Violation::class)]
 #[UsesClass(\Myracloud\WebApi\Model\Redirect::class)]
 #[UsesClass(\Myracloud\WebApi\Model\IpFilter::class)]
+#[UsesClass(\Myracloud\WebApi\Model\CacheSetting::class)]
 #[UsesClass(\Myracloud\WebApi\Exception\RequestRejectedException::class)]
 final class ContractTest extends TestCase
 {
@@ -183,6 +186,24 @@ final class ContractTest extends TestCase
         self::assertSame(
             [90393, 'example.com', 'WHITELIST', '192.0.2.123/32', true, '2018-07-11T13:57:24+0200'],
             [$filters[0]->id(), $filters[0]->subdomain(), $filters[0]->type(), $filters[0]->value(), $filters[0]->isEnabled(), $filters[0]->modified()],
+        );
+    }
+
+    /**
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testListsTheCacheSettingsOfAVhost(string $version, Closure $auth): void
+    {
+        $http = self::answers($version, 'cachesettings/list-apex');
+
+        $settings = self::client($version, $auth(), $http)->cacheSettings()->list('example.com');
+
+        self::assertCount(19, $settings);
+        self::assertSame(
+            [90373, 'example.com', '/path-1', 0, 'prefix', 5, false, 10, true],
+            [$settings[0]->id(), $settings[0]->subdomain(), $settings[0]->path(), $settings[0]->ttl(), $settings[0]->type(), $settings[0]->notFoundTtl(), $settings[0]->isEnforced(), $settings[0]->sort(), $settings[0]->isEnabled()],
         );
     }
 

@@ -99,16 +99,18 @@ _done; reads and writes captured (38–55), incl. v2 export (CSV) and import (CS
 
 ## Cache settings
 
+_done; reads and writes captured (56–68); v2 path has the vhost before the area; the object names no subdomain (the endpoints attach it)_
+
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
-| v1 | `GET /{lang}/rapi/cacheSettings/{domain}/{page}` | read | R | – |
-| v1 | `PUT /{lang}/rapi/cacheSettings/{domain}` | write | – | – |
-| v1 | `POST /{lang}/rapi/cacheSettings/{domain}` | write | – | – |
-| v1 | `DELETE /{lang}/rapi/cacheSettings/{domain}` | write | – | – |
-| v2 | `GET /domain/{domainId}/{vHostName}/cache-settings` | read | R | – |
-| v2 | `POST /domain/{domainId}/{vHostName}/cache-settings` | write | – | – |
-| v2 | `PUT /domain/{domainId}/{vHostName}/cache-settings/{id}` | write | – | – |
-| v2 | `DELETE /domain/{domainId}/{vHostName}/cache-settings/{id}` | write | – | – |
+| v1 | `GET /{lang}/rapi/cacheSettings/{domain}/{page}` | read | R | ✓ |
+| v1 | `PUT /{lang}/rapi/cacheSettings/{domain}` | write | W | ✓ |
+| v1 | `POST /{lang}/rapi/cacheSettings/{domain}` | write | W | ✓ |
+| v1 | `DELETE /{lang}/rapi/cacheSettings/{domain}` | write | W | ✓ |
+| v2 | `GET /domain/{domainId}/{vHostName}/cache-settings` | read | R | ✓ |
+| v2 | `POST /domain/{domainId}/{vHostName}/cache-settings` | write | W | ✓ |
+| v2 | `PUT /domain/{domainId}/{vHostName}/cache-settings/{id}` | write | W | ✓ |
+| v2 | `DELETE /domain/{domainId}/{vHostName}/cache-settings/{id}` | write | W | ✓ |
 
 ## Subdomain settings
 
