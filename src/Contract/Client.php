@@ -27,4 +27,6 @@ interface Client
     public function subdomainSettings(): SubdomainSettings;
 
     public function maintenances(): Maintenances;
+
+    public function errorPages(): ErrorPages;
 }

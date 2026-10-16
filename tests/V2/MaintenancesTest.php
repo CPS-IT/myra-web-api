@@ -20,6 +20,7 @@ use PHPUnit\Framework\TestCase;
  * As captured with the probe (a maintenance for 2099, never active).
  */
 #[CoversClass(V2\Maintenances::class)]
+#[UsesClass(V2\ErrorPages::class)]
 #[CoversClass(V2\MaintenanceTemplates::class)]
 #[UsesClass(V2\Client::class)]
 #[UsesClass(V2\Domains::class)]

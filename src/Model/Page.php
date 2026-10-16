@@ -78,12 +78,13 @@ final readonly class Page
     public static function collect(Closure $fetch): array
     {
         $items = [];
-        $number = 1;
+        $number = 0;
         do {
-            $page = $fetch($number++);
+            $page = $fetch(++$number);
             array_push($items, ...$page->items);
-            // An empty page ends it too, whatever `count` claims: never loop forever.
-        } while ($page->hasNext() && $page->items !== []);
+            // Stop on anything that is not a further page — some lists are unpaged (v2 error
+            // pages answer page 0 with pageSize 10^16, captured): never loop forever.
+        } while ($page->hasNext() && $page->items !== [] && $page->page === $number && count($items) < $page->total);
 
         return $items;
     }
@@ -117,8 +118,11 @@ final readonly class Page
         return $this->total;
     }
 
+    /**
+     * False for an unpaged answer (page 0).
+     */
     public function hasNext(): bool
     {
-        return $this->page * $this->pageSize < $this->total;
+        return $this->page >= 1 && $this->page * $this->pageSize < $this->total;
     }
 }

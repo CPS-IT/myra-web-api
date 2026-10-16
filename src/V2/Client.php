@@ -33,6 +33,7 @@ final readonly class Client implements Contract\Client
     private CacheSettings $cacheSettings;
     private SubdomainSettings $subdomainSettings;
     private Maintenances $maintenances;
+    private ErrorPages $errorPages;
     private MaintenanceTemplates $maintenanceTemplates;
 
     /**
@@ -56,6 +57,7 @@ final readonly class Client implements Contract\Client
         $this->cacheSettings = new CacheSettings($transport, $this->domainIds);
         $this->subdomainSettings = new SubdomainSettings($transport, $this->domainIds);
         $this->maintenances = new Maintenances($transport, $this->domainIds);
+        $this->errorPages = new ErrorPages($transport, $this->domainIds);
         $this->maintenanceTemplates = new MaintenanceTemplates($transport, $this->domainIds);
     }
 
@@ -97,6 +99,11 @@ final readonly class Client implements Contract\Client
     public function maintenances(): Maintenances
     {
         return $this->maintenances;
+    }
+
+    public function errorPages(): ErrorPages
+    {
+        return $this->errorPages;
     }
 
     /**

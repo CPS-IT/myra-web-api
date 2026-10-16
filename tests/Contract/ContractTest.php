@@ -39,6 +39,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V1\CacheSettings::class)]
 #[CoversClass(V1\SubdomainSettings::class)]
 #[CoversClass(V1\Maintenances::class)]
+#[CoversClass(V1\ErrorPages::class)]
 #[CoversClass(V2\Client::class)]
 #[CoversClass(V2\Domains::class)]
 #[CoversClass(V2\DnsRecords::class)]
@@ -48,6 +49,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V2\CacheSettings::class)]
 #[CoversClass(V2\SubdomainSettings::class)]
 #[CoversClass(V2\Maintenances::class)]
+#[CoversClass(V2\ErrorPages::class)]
 #[CoversClass(V2\MaintenanceTemplates::class)]
 #[CoversClass(V2\DomainIdResolver::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
@@ -67,6 +69,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(\Myracloud\WebApi\Model\IpFilter::class)]
 #[UsesClass(\Myracloud\WebApi\Model\CacheSetting::class)]
 #[UsesClass(\Myracloud\WebApi\Model\Settings::class)]
+#[UsesClass(\Myracloud\WebApi\Model\ErrorPage::class)]
 #[UsesClass(\Myracloud\WebApi\Exception\RequestRejectedException::class)]
 final class ContractTest extends TestCase
 {
@@ -231,6 +234,25 @@ final class ContractTest extends TestCase
         self::assertCount(94, $settings->inherited());
         self::assertSame([93, 0, 12, 0, 19], array_map('count', $settings->layers()));
         self::assertSame(array_filter($settings->inherited(), 'is_bool'), array_filter(self::client('v1', $auth(), self::answers('v1', 'settings/get-apex'))->subdomainSettings()->get('example.com')->inherited(), 'is_bool'));
+    }
+
+    /**
+     * v1 groups by subdomain, v2 lists flat (and unpaged) — the same four pages.
+     *
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testListsTheErrorPagesOfADomain(string $version, Closure $auth): void
+    {
+        $http = self::answers($version, 'errorpages/list');
+
+        $pages = self::client($version, $auth(), $http)->errorPages()->list('example.com');
+
+        self::assertSame(
+            [['example.com', 502, 90400], ['example.com', 504, 90401], ['www.example.com', 502, 90402], ['www.example.com', 504, 90403]],
+            array_map(static fn(\Myracloud\WebApi\Model\ErrorPage $p): array => [$p->subdomain(), $p->errorCode(), $p->id()], $pages),
+        );
     }
 
     /**

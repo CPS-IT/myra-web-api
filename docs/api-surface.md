@@ -172,17 +172,19 @@ _cert/key always empty in answers_
 
 ## Error pages
 
+_done; probed with code 413 on a vhost that had no page for it (114–126); v2 lists are unpaged_
+
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
-| v1 | `GET /{lang}/rapi/errorpages/{domain}/{page}` | read | R | – |
-| v1 | `GET /{lang}/rapi/errorpage/{id}` | read | – | – |
-| v1 | `POST /{lang}/rapi/errorpages/{domain}` | write | – | – |
-| v1 | `DELETE /{lang}/rapi/errorpages/{domain}` | write | – | – |
-| v2 | `GET /domain/{domainId}/errorpages` | read | R | – |
-| v2 | `POST /domain/{domainId}/errorpages` | write | – | – |
-| v2 | `DELETE /domain/{domainId}/errorpages` | write | – | – |
-| v2 | `GET /domain/{domainId}/errorpages-grouped` | read | R | – |
-| v2 | `GET /domain/{domainId}/errorpages/{id}` | read | R | – |
+| v1 | `GET /{lang}/rapi/errorpages/{domain}/{page}` | read | R | ✓ |
+| v1 | `GET /{lang}/rapi/errorpage/{id}` | read | R | ✓ |
+| v1 | `POST /{lang}/rapi/errorpages/{domain}` | write | W | ✓ |
+| v1 | `DELETE /{lang}/rapi/errorpages/{domain}` | write | W | ✓ |
+| v2 | `GET /domain/{domainId}/errorpages` | read | R | ✓ |
+| v2 | `POST /domain/{domainId}/errorpages` | write | W | ✓ |
+| v2 | `DELETE /domain/{domainId}/errorpages` | write | W | ✓ |
+| v2 | `GET /domain/{domainId}/errorpages-grouped` | read | R | ✓ |
+| v2 | `GET /domain/{domainId}/errorpages/{id}` | read | R | ✓ |
 
 ## Statistics
 

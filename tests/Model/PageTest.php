@@ -16,6 +16,8 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(JsonObject::class)]
 final class PageTest extends TestCase
 {
+    #[TestWith([0, 10000000000000000, 4, false])]
+    #[TestWith([0, 50, 100, false])]
     #[TestWith([1, 50, 0, false])]
     #[TestWith([1, 50, 49, false])]
     #[TestWith([1, 50, 50, false])]
@@ -67,6 +69,49 @@ final class PageTest extends TestCase
 
         self::assertSame(['a'], $items);
         self::assertSame([1, 2], $requested);
+    }
+
+    /**
+     * Captured (v2 error pages): page 0, pageSize 10^16 — one answer with everything, and the
+     * same answer for every ?page.
+     */
+    public function testAnUnpagedAnswerIsFetchedOnce(): void
+    {
+        $requested = [];
+        $items = Page::collect(static function (int $number) use (&$requested): Page {
+            $requested[] = $number;
+
+            return new Page(['a', 'b', 'c', 'd'], 0, 10000000000000000, 4);
+        });
+
+        self::assertSame(['a', 'b', 'c', 'd'], $items);
+        self::assertSame([1], $requested);
+    }
+
+    public function testStopsWhenTheAnswerIsNotTheRequestedPage(): void
+    {
+        $requested = [];
+        $items = Page::collect(static function (int $number) use (&$requested): Page {
+            $requested[] = $number;
+
+            return new Page(['a'], 1, 1, 5); // ?page ignored: always page 1
+        });
+
+        self::assertSame(['a', 'a'], $items);
+        self::assertSame([1, 2], $requested);
+    }
+
+    public function testStopsWhenAllEntriesAreThere(): void
+    {
+        $requested = [];
+        $items = Page::collect(static function (int $number) use (&$requested): Page {
+            $requested[] = $number;
+
+            return new Page(['a', 'b'], $number, 1, 2); // claims pageSize 1, sends 2
+        });
+
+        self::assertSame(['a', 'b'], $items);
+        self::assertSame([1], $requested);
     }
 
     public function testAcceptsPageOneAndUp(): void

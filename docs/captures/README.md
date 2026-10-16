@@ -136,6 +136,19 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 111 | v2 | `DELETE /domain/1140/maintenance-templates/90004` | 204 | template delete: HTTP 204 |
 | 112 | v2 | `GET /domain/1140/map.example.org/maintenances` | 200 | list of the vhost with the probe |
 | 113 | v2 | `DELETE /domain/1140/map.example.org/maintenances/90003` | 204 | v2 delete: HTTP 204 |
+| 114 | v1 | `GET /en/rapi/errorpages/example.com/1` | 200 | v1 lists error pages grouped by subdomain ({subDomainName, error: {code: ErrorPageVO}}), without content, pageSize 10 |
+| 115 | v2 | `GET /domain/1000/errorpages` | 200 | v2 lists them flat — UNPAGED: page 0, pageSize 10^16 (a naive 'next page' loop never ends; it did) |
+| 116 | v2 | `GET /domain/1000/errorpages-grouped` | 200 | errorpages-grouped: data keyed by subdomain |
+| 117 | v2 | `GET /domain/1000/errorpages/90400` | 200 | get by id: with content |
+| 118 | v1 | `POST /en/rapi/errorpages/example.org` | 200 | v1 set (probe: code 413, free on the vhost): POST with pageContent + selection |
+| 119 | v1 | `GET /en/rapi/errorpages/example.org/1` | 200 | the vhost's list with the probe page |
+| 120 | v1 | `GET /en/rapi/errorpage/90001` | 200 | v1 errorpage/{id}: answered like a list — one group in list, with content |
+| 121 | v1 | `POST /en/rapi/errorpages/example.org` | 200 | set again replaces the content (there is no update) |
+| 122 | v1 | `DELETE /en/rapi/errorpages/example.org` | 200 | v1 delete: DELETE with the selection |
+| 123 | v2 | `POST /domain/1140/errorpages` | 201 | v2 set: HTTP 201 |
+| 124 | v2 | `GET /domain/1140/errorpages` | 200 | the list with the probe page, unpaged |
+| 125 | v2 | `POST /domain/1140/errorpages` | 201 | set again: HTTP 201, content replaced |
+| 126 | v2 | `DELETE /domain/1140/errorpages` | 204 | v2 delete: HTTP 204 |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.

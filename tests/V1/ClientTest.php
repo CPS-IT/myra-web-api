@@ -24,6 +24,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(V1\CacheSettings::class)]
 #[UsesClass(V1\SubdomainSettings::class)]
 #[UsesClass(V1\Maintenances::class)]
+#[UsesClass(V1\ErrorPages::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\HmacSignature::class)]
 #[UsesClass(\Myracloud\WebApi\Http\Transport::class)]
@@ -184,6 +185,7 @@ final class ClientTest extends TestCase
         self::assertSame($client->cacheSettings(), $client->cacheSettings());
         self::assertSame($client->subdomainSettings(), $client->subdomainSettings());
         self::assertSame($client->maintenances(), $client->maintenances());
+        self::assertSame($client->errorPages(), $client->errorPages());
     }
 
     private function client(): Client

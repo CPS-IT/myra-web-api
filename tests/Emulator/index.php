@@ -23,6 +23,7 @@ declare(strict_types=1);
  *   stateless: nothing is stored, a stale `modified` is not detected; v2 lists of
  *   www.example.com are the v1 capture's objects in a v2 envelope; the IP filter export is
  *   built from the captured list;
+ * - error pages: the captured answers whatever the selection; nothing is stored;
  * - maintenance: the account has none, so both vhosts answer the probe's captured list;
  * - DNS record writes are echoed in the captured shapes (stateless); the dedicated v2 load
  *   balancing PUT answers the captured HTTP 500;
@@ -219,6 +220,15 @@ final class Emulator
                     'DELETE' => new Answer(200, 'text/html; charset=UTF-8', ['error' => false, 'targetObject' => [json_decode($this->body, true)], 'violationList' => []]),
                     default => self::notEmulated($this->method, $route),
                 },
+            preg_match('#^/errorpages/([^/]+)(/(\d+))?$#', $route, $m) === 1 && isset(self::DOMAINS[rawurldecode($m[1])])
+                => match ($this->method) {
+                    'GET' => rawurldecode($m[1]) === 'example.com' ? Answer::page('v1/errorpages/list', 'list', (int) ($m[3] ?? 1)) : Answer::page('v1/redirects/list-empty', 'list', 1),
+                    'POST' => Answer::fixture('v1/errorpages/set'),
+                    'DELETE' => Answer::fixture('v1/errorpages/delete'),
+                    default => self::notEmulated($this->method, $route),
+                },
+            $this->method === 'GET' && preg_match('#^/errorpage/\d+$#', $route) === 1
+                => Answer::fixture('v1/errorpages/get'),
             preg_match('#^/subdomainSetting/([^/]+)$#', $route, $m) === 1
                 => $this->settings('v1', rawurldecode($m[1])),
             preg_match('#^/(redirects|ipfilter|cacheSettings|maintenance)/([^/]+)(/(\d+))?$#', $route, $m) === 1
@@ -244,6 +254,16 @@ final class Emulator
             preg_match('#^/domain/(\d+)/([^/]+)/settings$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
                 => $this->settings('v2', rawurldecode($m[2])),
             // areas with the vhost before the area name
+            preg_match('#^/domain/(\d+)/(errorpages|errorpages-grouped)(/(\d+))?$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
+                => match (true) {
+                    // captured: unpaged — page 0, pageSize 10^16, whatever ?page says
+                    $this->method === 'GET' && $m[2] === 'errorpages' && !isset($m[4]) => Answer::fixture((int) $m[1] === 1000 ? 'v2/errorpages/list' : 'v2/errorpages/list-probe'),
+                    $this->method === 'GET' && $m[2] === 'errorpages' => Answer::fixture('v2/errorpages/get'),
+                    $this->method === 'GET' => Answer::fixture('v2/errorpages/grouped'),
+                    $this->method === 'POST' && $m[2] === 'errorpages' => Answer::fixture('v2/errorpages/set'),
+                    $this->method === 'DELETE' && $m[2] === 'errorpages' => new Answer(204, null, ''),
+                    default => self::notEmulated($this->method, $route),
+                },
             preg_match('#^/domain/(\d+)/(maintenances|maintenance-templates)(/(\d+))?$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
                 => $this->v2DomainMaintenance($m[2], isset($m[4]) ? (int) $m[4] : null),
             preg_match('#^/domain/(\d+)/([^/]+)/(cache-settings|maintenances)(/(\d+))?$#', $route, $m) === 1

@@ -266,6 +266,25 @@ final class IntegrationTest extends TestCase
      * @param Closure(): Authentication $auth
      */
     #[DataProvider('clients')]
+    public function testManagesErrorPages(string $version, Closure $auth): void
+    {
+        $pages = self::client($version, $auth())->errorPages();
+
+        $list = $pages->list('example.com'); // v2: unpaged — fetched once
+        self::assertCount(4, $list);
+        self::assertNotSame('', $pages->get('example.com', $list[0]->id())->content());
+        $pages->set('example.com', '<html>x</html>', ['www.example.com' => [413]]);
+        $pages->delete('example.com', ['www.example.com' => [413]]);
+        $lists = array_filter(self::requests(), static fn(string $r): bool => str_contains($r, 'errorpages') && str_starts_with($r, 'GET') && !str_contains($r, '/9'));
+        self::assertCount(1, $lists);
+        self::assertAllAuthenticated();
+    }
+
+    /**
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
     public function testAHostOutsideTheDomainIsRejected(string $version, Closure $auth): void
     {
         try {

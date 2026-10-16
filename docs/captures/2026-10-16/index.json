@@ -1148,5 +1148,135 @@
         "status": 204,
         "finding": "v2 delete: HTTP 204",
         "file": "v2-0113-maintenance-cleanup.json"
+    },
+    {
+        "case": "114",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/errorpages/example.com/1",
+        "status": 200,
+        "finding": "v1 lists error pages grouped by subdomain ({subDomainName, error: {code: ErrorPageVO}}), without content, pageSize 10",
+        "file": "v1-0114-Error pages-en-rapi-errorpages-example-com-1.json"
+    },
+    {
+        "case": "115",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/errorpages",
+        "status": 200,
+        "finding": "v2 lists them flat \u2014 UNPAGED: page 0, pageSize 10^16 (a naive 'next page' loop never ends; it did)",
+        "file": "v2-0115-v2 by domain-domain-1000-errorpages.json"
+    },
+    {
+        "case": "116",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/errorpages-grouped",
+        "status": 200,
+        "finding": "errorpages-grouped: data keyed by subdomain",
+        "file": "v2-0116-v2 by domain-domain-1000-errorpages-grouped.json"
+    },
+    {
+        "case": "117",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/errorpages/90400",
+        "status": 200,
+        "finding": "get by id: with content",
+        "file": "v2-0117-v2 by domain-domain-1000-errorpages-90400.json"
+    },
+    {
+        "case": "118",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/errorpages/example.org",
+        "status": 200,
+        "finding": "v1 set (probe: code 413, free on the vhost): POST with pageContent + selection",
+        "file": "v1-0118-errorpages-set.json"
+    },
+    {
+        "case": "119",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/errorpages/example.org/1",
+        "status": 200,
+        "finding": "the vhost's list with the probe page",
+        "file": "v1-0119-errorpages-list.json"
+    },
+    {
+        "case": "120",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/errorpage/90001",
+        "status": 200,
+        "finding": "v1 errorpage/{id}: answered like a list \u2014 one group in list, with content",
+        "file": "v1-0120-errorpages-get.json"
+    },
+    {
+        "case": "121",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/errorpages/example.org",
+        "status": 200,
+        "finding": "set again replaces the content (there is no update)",
+        "file": "v1-0121-errorpages-replace.json"
+    },
+    {
+        "case": "122",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "DELETE",
+        "path": "/en/rapi/errorpages/example.org",
+        "status": 200,
+        "finding": "v1 delete: DELETE with the selection",
+        "file": "v1-0122-errorpages-delete.json"
+    },
+    {
+        "case": "123",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/domain/1140/errorpages",
+        "status": 201,
+        "finding": "v2 set: HTTP 201",
+        "file": "v2-0123-errorpages-set.json"
+    },
+    {
+        "case": "124",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/errorpages",
+        "status": 200,
+        "finding": "the list with the probe page, unpaged",
+        "file": "v2-0124-errorpages-list.json"
+    },
+    {
+        "case": "125",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/domain/1140/errorpages",
+        "status": 201,
+        "finding": "set again: HTTP 201, content replaced",
+        "file": "v2-0125-errorpages-replace.json"
+    },
+    {
+        "case": "126",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "DELETE",
+        "path": "/domain/1140/errorpages",
+        "status": 204,
+        "finding": "v2 delete: HTTP 204",
+        "file": "v2-0126-errorpages-delete.json"
     }
 ]
