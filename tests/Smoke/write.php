@@ -22,6 +22,8 @@ declare(strict_types=1);
  *   load balancing settings; both deleted again;
  * - maintenance: a maintenance page for 2099 (v2: also active=false) — deleted at once and
  *   the run aborted if Myra reports it active; v2 maintenance templates (stored HTML only);
+ * - errorpages: an error page for a code the vhost has NO page for yet (413, else 405, else
+ *   400 — never one that exists), set, replaced and deleted; cleanup deletes only that code;
  * - settings: the vhost's OWN subdomain settings, read and posted back UNCHANGED (a no-op
  *   whether Myra replaces or merges them), read again and compared — restored if different;
  * - cachesettings: a DISABLED rule for the exact path /__probe__/ (ttl -1 = no cache);
@@ -41,6 +43,7 @@ use Myracloud\WebApi\Exception\MyraException;
 use Myracloud\WebApi\Exception\RequestRejectedException;
 use Myracloud\WebApi\Model\CacheSetting;
 use Myracloud\WebApi\Model\DnsRecord;
+use Myracloud\WebApi\Model\ErrorPage;
 use Myracloud\WebApi\Model\IpFilter;
 use Myracloud\WebApi\Model\Maintenance;
 use Myracloud\WebApi\Model\MaintenanceTemplate;
@@ -107,7 +110,7 @@ if ($vhosts === []) {
     exit(2);
 }
 $vhost = $vhosts[0];
-$guard = new WriteGuard($vhost, $domainId, ['redirects', 'ipfilter', 'ip-filters', 'cacheSettings', 'cache-settings', 'subdomainSetting', 'settings', 'maintenance', 'maintenances'], ['import'], $domain, ['dnsRecords', 'dns-records', 'maintenance-templates']);
+$guard = new WriteGuard($vhost, $domainId, ['redirects', 'ipfilter', 'ip-filters', 'cacheSettings', 'cache-settings', 'subdomainSetting', 'settings', 'maintenance', 'maintenances'], ['import'], $domain, ['dnsRecords', 'dns-records', 'maintenance-templates', 'errorpages']);
 $shownVhost = $anonymizer->value($vhost);
 $shownId = $anonymizer->value($domainId, 'id');
 printf("Target: %s (domain %s)\n", is_string($shownVhost) ? $shownVhost : '?', is_int($shownId) ? (string) $shownId : '?');
@@ -355,6 +358,66 @@ if (in_array('maintenance', $areas, true)) {
             }
 
             return array_values(array_filter($left, static fn(string $l): bool => !str_ends_with($l, '(deleted in cleanup)')));
+        });
+    }
+}
+
+// ------------------------------------------------------------------ error pages
+
+if (in_array('errorpages', $areas, true)) {
+    foreach (['v1' => $v1, 'v2' => $v2] as $version => $client) {
+        $pages = $client->errorPages();
+        /** @var ArrayObject<string, int> $state 'code': the code that was free before the probe */
+        $state = new ArrayObject();
+        // the codes the vhost has a page for
+        $codesOf = static function (array $list) use ($vhost): array {
+            $codes = [];
+            foreach ($list as $page) {
+                if ($page instanceof ErrorPage && $page->subdomain() === $vhost) {
+                    $codes[] = $page->errorCode();
+                }
+            }
+
+            return $codes;
+        };
+        $run('errorpages', $version, static function () use ($pages, $client, $version, $vhost, $domain, $record, $say, $state, $codesOf): void {
+            $taken = $codesOf($pages->list($domain));
+            $record('errorpages', $version, 'list-before');
+            $free = array_values(array_diff([413, 405, 400], $taken));
+            if ($free === []) {
+                $say('skipped: the vhost has pages for 413, 405 and 400 already');
+
+                return;
+            }
+            $code = $free[0];
+            $state['code'] = $code;
+            $say("probing code $code (free on this vhost)");
+            $pages->set($domain, '<html>__probe__</html>', [$vhost => [$code]]);
+            $record('errorpages', $version, 'set');
+            $probe = array_values(array_filter($pages->list($domain), static fn(ErrorPage $p): bool => $p->subdomain() === $vhost && $p->errorCode() === $code))[0] ?? null;
+            $record('errorpages', $version, 'list');
+            if ($probe !== null) {
+                $pages->get($domain, $probe->id());
+                $record('errorpages', $version, 'get');
+            }
+            $pages->set($domain, '<html>__probe__ replaced</html>', [$vhost => [$code]]);
+            $record('errorpages', $version, 'replace');
+            if ($client instanceof V2\Client) {
+                $client->errorPages()->grouped($domain);
+                $record('errorpages', $version, 'grouped');
+            }
+            $pages->delete($domain, [$vhost => [$code]]);
+            $record('errorpages', $version, 'delete');
+        }, static function () use ($pages, $vhost, $domain, $state, $codesOf): array {
+            $code = $state['code'] ?? null;
+            if ($code === null) {
+                return [];
+            }
+            if (in_array($code, $codesOf($pages->list($domain)), true)) {
+                $pages->delete($domain, [$vhost => [$code]]);
+            }
+
+            return in_array($code, $codesOf($pages->list($domain)), true) ? ["error page $code of the vhost"] : [];
         });
     }
 }
