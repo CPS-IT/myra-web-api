@@ -1,0 +1,20 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    // Mutation testing only where a weak test is dangerous (see docs/2.0-design.md):
+    // a signature or envelope test that passes for wrong output.
+    "source": {
+        "directories": ["src/Auth", "src/Http", "src/Exception"]
+    },
+    // No "staticAnalysisTool": Infection runs PHPStan under the memory limit of the initial
+    // test run (~16 MB, set before PHPStan's own --memory-limit applies); PHPStan crashes, and
+    // a crash counts as a killed mutant. PHPStan is a separate gate (composer ci).
+    "tmpDir": ".cache/infection",
+    "logs": {
+        "text": ".cache/infection/infection.log"
+    },
+    "mutators": {
+        "@default": true
+    },
+    "minMsi": 100,
+    "minCoveredMsi": 100
+}
