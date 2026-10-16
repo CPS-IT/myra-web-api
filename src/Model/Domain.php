@@ -54,4 +54,14 @@ final readonly class Domain
     {
         return $this->raw;
     }
+
+    /**
+     * Version for optimistic locking, exactly as Myra sent it.
+     */
+    public function modified(): ?string
+    {
+        $modified = $this->raw['modified'] ?? null;
+
+        return is_string($modified) ? $modified : null;
+    }
 }

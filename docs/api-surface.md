@@ -20,21 +20,21 @@ without a harmless test are implemented from the spec, labelled *write unverifie
 
 ## Domains
 
-_done: list/page_
+_reads done; writes from the manual/spec (unverified, never probed): create, auto update, delete; v1 pause/resume, v2 environment_
 
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
 | v1 | `GET /{lang}/rapi/domains/{page}` | read | R | ✓ |
-| v1 | `PUT /{lang}/rapi/domains` | write | – | – |
-| v1 | `POST /{lang}/rapi/domains` | write | – | – |
-| v1 | `DELETE /{lang}/rapi/domains` | write | – | – |
+| v1 | `PUT /{lang}/rapi/domains` | write | – | ✓u |
+| v1 | `POST /{lang}/rapi/domains` | write | – | ✓u |
+| v1 | `DELETE /{lang}/rapi/domains` | write | – | ✓u |
 | v2 | `GET /domains/{id}` | read | R | ✓ |
-| v2 | `PUT /domains/{id}` | write | – | – |
-| v2 | `DELETE /domains/{id}` | write | – | – |
+| v2 | `PUT /domains/{id}` | write | – | ✓u |
+| v2 | `DELETE /domains/{id}` | write | – | ✓u |
 | v2 | `GET /domains/{id}/bind/{ipTarget}` | read | R | ✓ |
 | v2 | `GET /domains/{id}/bind-raw/{ipTarget}` | read | R | ✓ |
 | v2 | `GET /domains` | read | R | ✓ |
-| v2 | `POST /domains` | write | – | – |
+| v2 | `POST /domains` | write | – | ✓u |
 
 ## DNS records
 

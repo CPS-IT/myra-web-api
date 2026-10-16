@@ -126,6 +126,23 @@ final class IntegrationTest extends TestCase
      * @param Closure(): Authentication $auth
      */
     #[DataProvider('clients')]
+    public function testManagesDomains(string $version, Closure $auth): void
+    {
+        $domains = self::client($version, $auth())->domains();
+
+        $created = $domains->create('example.net', autoUpdate: true);
+        self::assertSame(['example.net', 4711], [$created->name(), $created->id()]);
+        $domain = $domains->list()[0];
+        self::assertSame(1000, $domains->setAutoUpdate($domain, false)->id());
+        $domains->delete($created);
+        self::assertAllAuthenticated();
+    }
+
+    /**
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
     public function testReadsTheZone(string $version, Closure $auth): void
     {
         $zones = self::client($version, $auth())->zones();

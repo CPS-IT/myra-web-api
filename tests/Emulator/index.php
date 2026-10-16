@@ -28,6 +28,7 @@ declare(strict_types=1);
  * - DNS record writes are echoed in the captured shapes (stateless); the dedicated v2 load
  *   balancing PUT answers the captured HTTP 500;
  * - users and organisation: writes echoed (spec only), deletes 204, the permission check grants;
+ * - domain writes: echoed (manual/spec only), deletes answer like the other deletes;
  * - zones (BIND): every domain answers the captured zone of example.org;
  * - SSL certificates: writes echoed without certificate, key and password (Myra never returns
  *   them — manual); v2 lists of example.org are the empty v1 list;
@@ -228,6 +229,8 @@ final class Emulator
         return match (true) {
             $this->method === 'GET' && preg_match('#^/domains/(\d+)$#', $route, $m) === 1
                 => Answer::page('v1/domains/list', 'list', (int) $m[1]),
+            $route === '/domains' && in_array($this->method, ['PUT', 'POST', 'DELETE'], true)
+                => $this->method === 'DELETE' ? Answer::success('targetObject', [json_decode($this->body, true)]) : $this->domainWritten('targetObject', null),
             $this->method === 'GET' && preg_match('#^/(bind|bindRaw)/([^/]+)$#', $route, $m) === 1 && isset(self::DOMAINS[rawurldecode($m[2])])
                 => Answer::fixture($m[1] === 'bind' ? 'v1/bind/zone' : 'v1/bind/file'),
             $this->method === 'POST' && $route === '/statistic/query'
@@ -289,6 +292,10 @@ final class Emulator
                 => in_array($fixture, ['users/list', 'users/activities', 'users/permissions-of-user'], true) ? Answer::page('v2/' . $fixture, 'data', $page) : Answer::fixture('v2/' . $fixture),
             $this->method !== 'GET' && preg_match('#^/(users|user|organization)(/|$)#', $route) === 1
                 => $this->userWrite($route),
+            $this->method === 'POST' && $route === '/domains'
+                => $this->written('DomainVO', 'data', null, 201),
+            preg_match('#^/domains/(\d+)$#', $route, $m) === 1 && ($this->method === 'DELETE' || ($this->method === 'PUT' && in_array((int) $m[1], self::DOMAINS, true)))
+                => $this->method === 'DELETE' ? new Answer(204, null, '') : $this->domainWritten('data', (int) $m[1]),
             $this->method === 'GET' && preg_match('#^/domains/(\d+)/(bind|bind-raw)/(Myra|Origin)$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
                 => Answer::fixture('v2/bind/' . ($m[2] === 'bind' ? 'zone-' : 'file-') . strtolower($m[3])),
             $this->method === 'GET' && $route === '/ssl-configurations'
@@ -522,15 +529,28 @@ final class Emulator
     }
 
     /**
+     * A domain write echoed as the complete DomainVO (an update carries only id, modified and
+     * the change; Myra answers the whole object — manual).
+     */
+    private function domainWritten(string $key, ?int $id): Answer
+    {
+        $body = json_decode($this->body, true);
+        $id ??= is_array($body) && is_int($body['id'] ?? null) ? $body['id'] : null;
+        $name = $id === null ? false : array_search($id, self::DOMAINS, true);
+
+        return $this->withDefaults($this->written('DomainVO', $key, $id), is_string($name) ? ['name' => $name] : [], $key);
+    }
+
+    /**
      * Fields Myra always sends (e.g. in a UserVO) that a request body does not carry.
      *
      * @param array<string, mixed> $defaults
      */
-    private function withDefaults(Answer $answer, array $defaults): Answer
+    private function withDefaults(Answer $answer, array $defaults, string $key = 'data'): Answer
     {
         $body = is_array($answer->body) ? $answer->body : [];
-        if (is_array($body['data'] ?? null) && is_array($body['data'][0] ?? null)) {
-            $body['data'][0] += $defaults;
+        if (is_array($body[$key] ?? null) && is_array($body[$key][0] ?? null)) {
+            $body[$key][0] += $defaults;
         }
 
         return new Answer($answer->status, $answer->contentType, $body);
