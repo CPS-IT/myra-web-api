@@ -1,0 +1,11 @@
+# The Composer package is src/, composer.json, README.md and LICENSE — the rest is development.
+/.github                          export-ignore
+/docs                             export-ignore
+/tests                            export-ignore
+/.gitattributes                   export-ignore
+/.gitignore                       export-ignore
+/.php-cs-fixer.dist.php           export-ignore
+/composer-dependency-analyser.php export-ignore
+/infection.json5                  export-ignore
+/phpstan.neon.dist                export-ignore
+/phpunit.xml.dist                 export-ignore
