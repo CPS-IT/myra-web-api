@@ -43,6 +43,16 @@ final class WriteGuardTest extends TestCase
         self::assertFalse(self::guard()->allows(new Request('POST', 'https://apiv2.myracloud.com/domain/1140/redirects/www.example.org/import')));
     }
 
+    public function testAllowsTheV2PathWithTheVhostFirst(): void
+    {
+        $guard = new WriteGuard('www.example.org', 1140, ['cache-settings']);
+
+        self::assertTrue($guard->allows(new Request('POST', 'https://apiv2.myracloud.com/domain/1140/www.example.org/cache-settings')));
+        self::assertTrue($guard->allows(new Request('DELETE', 'https://apiv2.myracloud.com/domain/1140/www.example.org/cache-settings/5')));
+        self::assertFalse($guard->allows(new Request('POST', 'https://apiv2.myracloud.com/domain/1140/www.example.com/cache-settings')));
+        self::assertFalse($guard->allows(new Request('POST', 'https://apiv2.myracloud.com/domain/1140/www.example.org/settings')));
+    }
+
     public function testAVhostNameIsNoPattern(): void
     {
         $guard = new WriteGuard('www.example.org', 1140, ['redirects']);

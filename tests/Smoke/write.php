@@ -17,6 +17,7 @@ declare(strict_types=1);
  *
  * Probes:
  * - redirects: a DISABLED redirect of the exact path /__probe__/redirect;
+ * - cachesettings: a DISABLED rule for the exact path /__probe__/ (ttl -1 = no cache);
  * - ipfilter: a DISABLED blacklist entry for 192.0.2.1 (documentation range, never a real
  *   client); v2 import of 192.0.2.2 / 192.0.2.3 (blacklist, documentation range) plus one
  *   invalid line — imported entries are enabled, but block only an address that never exists.
@@ -30,6 +31,7 @@ use Myracloud\WebApi\Auth\BearerToken;
 use Myracloud\WebApi\Auth\HmacSignature;
 use Myracloud\WebApi\Exception\MyraException;
 use Myracloud\WebApi\Exception\RequestRejectedException;
+use Myracloud\WebApi\Model\CacheSetting;
 use Myracloud\WebApi\Model\IpFilter;
 use Myracloud\WebApi\Model\Redirect;
 use Myracloud\WebApi\V1;
@@ -92,7 +94,7 @@ if ($vhosts === []) {
     exit(2);
 }
 $vhost = $vhosts[0];
-$guard = new WriteGuard($vhost, $domainId, ['redirects', 'ipfilter', 'ip-filters'], ['import']);
+$guard = new WriteGuard($vhost, $domainId, ['redirects', 'ipfilter', 'ip-filters', 'cacheSettings', 'cache-settings'], ['import']);
 $shownVhost = $anonymizer->value($vhost);
 $shownId = $anonymizer->value($domainId, 'id');
 printf("Target: %s (domain %s)\n", is_string($shownVhost) ? $shownVhost : '?', is_int($shownId) ? (string) $shownId : '?');
@@ -243,5 +245,30 @@ if (in_array('ipfilter', $areas, true)) {
 }
 
 $leftovers = array_filter($leftovers, 'is_string');
+// ------------------------------------------------------------------ cache settings
+
+if (in_array('cachesettings', $areas, true)) {
+    foreach (['v1' => $v1, 'v2' => $v2] as $version => $client) {
+        $settings = $client->cacheSettings();
+        $isProbe = static fn(CacheSetting $s): bool => str_starts_with($s->path(), '/__probe__/');
+        $run('cachesettings', $version, static function () use ($settings, $version, $vhost, $record, $stale): void {
+            $created = $settings->create(new CacheSetting($vhost, '/__probe__/', CacheSetting::TTL_NO_CACHE, CacheSetting::TYPE_EXACT, sort: 999, enabled: false));
+            $record('cachesettings', $version, 'create');
+            $settings->update($created->withTtl(CacheSetting::TTL_LIKE_ORIGIN));
+            $record('cachesettings', $version, 'update');
+            $stale(static fn() => $settings->update($created->withTtl(60)));
+            $record('cachesettings', $version, 'update-stale');
+            $settings->list($vhost);
+            $record('cachesettings', $version, 'list');
+        }, static function () use ($settings, $vhost, $isProbe): array {
+            foreach (array_filter($settings->list($vhost), $isProbe) as $probe) {
+                $settings->delete($probe);
+            }
+
+            return array_values(array_map(static fn(CacheSetting $s): string => 'cache setting ' . $s->id(), array_filter($settings->list($vhost), $isProbe)));
+        });
+    }
+}
+
 echo $leftovers === [] ? "No leftovers.\n" : 'LEFTOVERS — delete by hand: ' . implode(', ', $leftovers) . "\n";
 exit($failures === 0 && $leftovers === [] ? 0 : 1);

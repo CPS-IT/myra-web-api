@@ -30,8 +30,10 @@ final readonly class WriteGuard
         foreach ($this->areas as $area) {
             $area = preg_quote($area, '#');
             $suffix = implode('|', ['\\d+', ...array_map(static fn(string $a): string => preg_quote($a, '#'), $this->actions)]);
+            // v1 /{lang}/rapi/{area}/{vhost}; v2 /domain/{id}/{area}/{vhost} or /domain/{id}/{vhost}/{area}
             if (preg_match("#^/[a-z]{2}/rapi/$area/$vhost$#", $path) === 1
-                || preg_match("#^/domain/{$this->domainId}/$area/$vhost(/($suffix))?$#", $path) === 1) {
+                || preg_match("#^/domain/{$this->domainId}/$area/$vhost(/($suffix))?$#", $path) === 1
+                || preg_match("#^/domain/{$this->domainId}/$vhost/$area(/($suffix))?$#", $path) === 1) {
                 return true;
             }
         }
