@@ -29,6 +29,36 @@ final class Fixture
         return json_decode($json, true, 512, JSON_THROW_ON_ERROR);
     }
 
+    /**
+     * The JSON body the capture sent.
+     */
+    public static function requestBody(string $name): string
+    {
+        return json_encode(self::load($name)['request']['body'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * A synthetic list answer, for paging beyond what the captures contain.
+     *
+     * @param string $key v1 `list`, v2 `data`
+     * @param list<array<string, mixed>> $items
+     */
+    public static function page(string $key, array $items, int $page, int $pageSize, int $count): Response
+    {
+        return new Response(200, ['Content-Type' => 'application/json'], json_encode([
+            'error' => false, 'violationList' => [], 'warningList' => [],
+            $key => $items, 'page' => $page, 'count' => $count, 'pageSize' => $pageSize,
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function domain(int $id, string $name): array
+    {
+        return ['objectType' => 'DomainVO', 'id' => $id, 'name' => $name];
+    }
+
     public static function response(string $name): Response
     {
         $response = self::load($name)['response'];
