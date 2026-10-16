@@ -17,6 +17,9 @@ declare(strict_types=1);
  *
  * Probes:
  * - redirects: a DISABLED redirect of the exact path /__probe__/redirect;
+ * - dns: a TXT record __probe__.<domain> and an A record myra-web-api-probe.<domain> →
+ *   192.0.2.1 (documentation range), both inactive (not proxied), the A record with changed
+ *   load balancing settings; both deleted again;
  * - settings: the vhost's OWN subdomain settings, read and posted back UNCHANGED (a no-op
  *   whether Myra replaces or merges them), read again and compared — restored if different;
  * - cachesettings: a DISABLED rule for the exact path /__probe__/ (ttl -1 = no cache);
@@ -35,6 +38,7 @@ use Myracloud\WebApi\Auth\HmacSignature;
 use Myracloud\WebApi\Exception\MyraException;
 use Myracloud\WebApi\Exception\RequestRejectedException;
 use Myracloud\WebApi\Model\CacheSetting;
+use Myracloud\WebApi\Model\DnsRecord;
 use Myracloud\WebApi\Model\IpFilter;
 use Myracloud\WebApi\Model\Redirect;
 use Myracloud\WebApi\V1;
@@ -98,7 +102,7 @@ if ($vhosts === []) {
     exit(2);
 }
 $vhost = $vhosts[0];
-$guard = new WriteGuard($vhost, $domainId, ['redirects', 'ipfilter', 'ip-filters', 'cacheSettings', 'cache-settings', 'subdomainSetting', 'settings'], ['import']);
+$guard = new WriteGuard($vhost, $domainId, ['redirects', 'ipfilter', 'ip-filters', 'cacheSettings', 'cache-settings', 'subdomainSetting', 'settings'], ['import'], $domain, ['dnsRecords', 'dns-records']);
 $shownVhost = $anonymizer->value($vhost);
 $shownId = $anonymizer->value($domainId, 'id');
 printf("Target: %s (domain %s)\n", is_string($shownVhost) ? $shownVhost : '?', is_int($shownId) ? (string) $shownId : '?');
@@ -250,6 +254,55 @@ if (in_array('ipfilter', $areas, true)) {
 }
 
 $leftovers = array_filter($leftovers, 'is_string');
+// ------------------------------------------------------------------ DNS records and load balancing
+
+if (in_array('dns', $areas, true)) {
+    foreach (['v1' => $v1, 'v2' => $v2] as $version => $client) {
+        $records = $client->dnsRecords();
+        $isProbe = static fn(DnsRecord $r): bool => str_starts_with($r->name(), '__probe__.') || str_starts_with($r->name(), 'myra-web-api-probe.');
+        $run('dns', $version, static function () use ($records, $client, $version, $domain, $record, $stale, $say): void {
+            $txt = $records->create($domain, new DnsRecord("__probe__.$domain", 'TXT', 'myra-web-api probe', 300, comment: '__probe__'));
+            $record('dns', $version, 'create-txt');
+            if ($client instanceof V2\Client) {
+                $client->dnsRecords()->get($domain, (int) $txt->id());
+                $record('dns', $version, 'get');
+            }
+            $records->update($domain, $txt->withValue('myra-web-api probe 2'));
+            $record('dns', $version, 'update');
+            $stale(static fn() => $records->update($domain, $txt->withValue('myra-web-api probe stale')));
+            $record('dns', $version, 'update-stale');
+            $a = $records->create($domain, new DnsRecord("myra-web-api-probe.$domain", 'A', '192.0.2.1', 300, comment: '__probe__'));
+            $record('dns', $version, 'create-a');
+            $records->loadBalancing($domain);
+            $record('dns', $version, 'load-balancing');
+            $options = $a->upstreamOptions();
+            $say('A record upstreamOptions: ' . ($options === null ? 'none' : sprintf('id %s, weight %d', $options->id() === null ? '-' : 'set', $options->weight())));
+            if ($options !== null) {
+                // through the normal update, in both versions
+                $changed = $records->update($domain, $a->withUpstreamOptions($options->withWeight(2)));
+                $record('dns', $version, 'update-load-balancing');
+                $say('weight after update(): ' . ($changed->upstreamOptions()?->weight() ?? 'none'));
+                if ($client instanceof V2\Client) {
+                    // the dedicated v2 endpoint (answered HTTP 500 for an inactive record before)
+                    try {
+                        $client->dnsRecords()->updateLoadBalancing($domain, $changed->withUpstreamOptions(($changed->upstreamOptions() ?? $options)->withWeight(3)));
+                        $say('PUT …/load-balancing: accepted');
+                    } catch (MyraException $e) {
+                        $say('PUT …/load-balancing: ' . $e->getMessage());
+                    }
+                    $record('dns', $version, 'load-balancing-endpoint');
+                }
+            }
+        }, static function () use ($records, $domain, $isProbe): array {
+            foreach (array_filter($records->list($domain), $isProbe) as $probe) {
+                $records->delete($domain, $probe);
+            }
+
+            return array_values(array_map(static fn(DnsRecord $r): string => 'DNS record ' . $r->id(), array_filter($records->list($domain), $isProbe)));
+        });
+    }
+}
+
 // ------------------------------------------------------------------ subdomain settings
 
 if (in_array('settings', $areas, true)) {

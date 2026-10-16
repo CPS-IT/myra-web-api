@@ -53,6 +53,20 @@ final class WriteGuardTest extends TestCase
         self::assertFalse($guard->allows(new Request('POST', 'https://apiv2.myracloud.com/domain/1140/www.example.org/settings')));
     }
 
+    public function testAllowsDomainAreasOfTheDomainOnly(): void
+    {
+        $guard = new WriteGuard('www.example.org', 1140, ['redirects'], [], 'example.org', ['dnsRecords', 'dns-records']);
+
+        self::assertTrue($guard->allows(new Request('PUT', 'https://api.myracloud.com/en/rapi/dnsRecords/example.org')));
+        self::assertTrue($guard->allows(new Request('POST', 'https://apiv2.myracloud.com/domain/1140/dns-records')));
+        self::assertTrue($guard->allows(new Request('DELETE', 'https://apiv2.myracloud.com/domain/1140/dns-records/5')));
+        self::assertTrue($guard->allows(new Request('PUT', 'https://apiv2.myracloud.com/domain/1140/dns-records/5/load-balancing')));
+        self::assertFalse($guard->allows(new Request('PUT', 'https://api.myracloud.com/en/rapi/dnsRecords/example.com')));
+        self::assertFalse($guard->allows(new Request('POST', 'https://apiv2.myracloud.com/domain/1000/dns-records')));
+        self::assertFalse($guard->allows(new Request('PUT', 'https://apiv2.myracloud.com/domain/1140/dns-records/5/other')));
+        self::assertFalse((new WriteGuard('www.example.org', 1140, ['redirects']))->allows(new Request('POST', 'https://apiv2.myracloud.com/domain/1140/dns-records')));
+    }
+
     public function testAVhostNameIsNoPattern(): void
     {
         $guard = new WriteGuard('www.example.org', 1140, ['redirects']);

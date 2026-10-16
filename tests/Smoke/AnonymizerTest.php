@@ -101,6 +101,16 @@ final class AnonymizerTest extends TestCase
         self::assertSame(['/', 'x', '/__probe__/redirect', 'https://www.example.com/__probe__/target', '__probe__ updated', '192.0.2.1/32', '2001:db8::1'], $this->anonymizer->value(['/', 'x', '/__probe__/redirect', 'https://www.real-zone.de/__probe__/target', '__probe__ updated', '192.0.2.1/32', '2001:db8::1']));
     }
 
+    public function testDocumentedWordsJoinedByDotsAreNoHost(): void
+    {
+        self::assertSame('Unexpected response: objectType.type is missing.', $this->anonymizer->text('Unexpected response: objectType.type is missing.'));
+    }
+
+    public function testAProbeHostIsStillAnonymised(): void
+    {
+        self::assertSame('__probe__.example.com', $this->anonymizer->value('__probe__.real-zone.de'));
+    }
+
     public function testFreeTextKeepsItsStructureAndLosesIds(): void
     {
         $this->anonymizer->seed(['id' => 4242], ['id' => 1000]);

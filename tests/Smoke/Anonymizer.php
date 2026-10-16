@@ -265,7 +265,7 @@ final class Anonymizer
         }
         // generic or ours: dates, documented words, the root path, single characters and the
         // probes' own values (/__probe__/…) carry no customer data
-        if (self::isDate($value) || $this->vocabulary->has($value) || strlen($value) <= 1 || str_starts_with($value, '/__probe__/') || str_starts_with($value, '__probe__') || self::isDocumentationIp($value)) {
+        if (self::isDate($value) || $this->vocabulary->has($value) || strlen($value) <= 1 || str_starts_with($value, '/__probe__/') || (str_starts_with($value, '__probe__') && !str_contains($value, '.')) || self::isDocumentationIp($value)) {
             return $value;
         }
         $fake = match (true) {
@@ -301,6 +301,10 @@ final class Anonymizer
             return $host;
         }
         $labels = explode('.', $name);
+        // documented words joined by dots are no host: e.g. the path upstreamOptions.weight in a message
+        if (array_filter(explode('.', rtrim($host, '.')), fn(string $label): bool => !$this->vocabulary->has($label)) === []) {
+            return $host;
+        }
         // a documented suffix stays, e.g. Myra's CDN zone ax4z.com in alternative CNAMEs
         for ($i = 1; $i < count($labels) - 1; $i++) {
             $suffix = implode('.', array_slice($labels, $i));
@@ -316,7 +320,8 @@ final class Anonymizer
     private function labels(string $labels): string
     {
         return implode('.', array_map(function (string $label): string {
-            if ($this->vocabulary->has($label) || $this->vocabulary->mentions($label) || isset($this->publicLabels[$label])) {
+            // documented, published, or the probes' own labels
+            if ($this->vocabulary->has($label) || $this->vocabulary->mentions($label) || isset($this->publicLabels[$label]) || in_array($label, ['__probe__', 'myra-web-api-probe'], true)) {
                 return $label;
             }
             if (!isset($this->strings[$label])) {
