@@ -20,7 +20,7 @@ namespace Myracloud\WebApi\Tests\Smoke;
  */
 final class Anonymizer
 {
-    /** @var array<string, string> real → fake */
+    /** @var array<array-key, string> real → fake (numeric strings become int keys) */
     private array $strings = [];
     /** @var array<int, int> real → fake */
     private array $ids = [];
@@ -131,9 +131,12 @@ final class Anonymizer
      */
     public function text(string $text): string
     {
-        $known = $this->strings;
-        uksort($known, static fn(string $a, string $b): int => strlen($b) <=> strlen($a));
-        $text = strtr($text, $known);
+        // only values of 4+ characters: short ones ("de", "/") would shred any text
+        $known = array_filter($this->strings, static fn(string $fake, int|string $real): bool => strlen((string) $real) >= 4, ARRAY_FILTER_USE_BOTH);
+        uksort($known, static fn(int|string $a, int|string $b): int => strlen((string) $b) <=> strlen((string) $a));
+        $text = strtr($text, array_combine(array_map('strval', array_keys($known)), $known));
+        // known ids as whole numbers, e.g. in a URL inside a message
+        $text = (string) preg_replace_callback('/(?<![\w.])\d{3,}(?![\w.])/', fn(array $m): string => isset($this->ids[(int) $m[0]]) ? (string) $this->ids[(int) $m[0]] : $m[0], $text);
         $patterns = [
             '/[\w.+-]+@[\w-]+(\.[\w-]+)+/',
             '#\b(\d{1,3}\.){3}\d{1,3}(/\d{1,2})?\b#',
@@ -256,7 +259,9 @@ final class Anonymizer
         if ($value === '' || isset($this->fakes[$value]) || isset($this->strings[$value])) {
             return $this->strings[$value] ?? $value;
         }
-        if (self::isDate($value) || $this->vocabulary->has($value)) {
+        // generic or ours: dates, documented words, the root path, single characters and the
+        // probes' own values (/__probe__/…) carry no customer data
+        if (self::isDate($value) || $this->vocabulary->has($value) || strlen($value) <= 1 || str_starts_with($value, '/__probe__/')) {
             return $value;
         }
         $fake = match (true) {
@@ -322,7 +327,10 @@ final class Anonymizer
     {
         $parts = parse_url($url);
         $host = is_array($parts) && isset($parts['host']) ? $this->host($parts['host']) : 'example.com';
-        $path = is_array($parts) && isset($parts['path']) && $parts['path'] !== '/' ? '/path-' . $this->next('path') : '/';
+        $path = is_array($parts) && isset($parts['path']) ? $parts['path'] : '/';
+        if ($path !== '/' && !str_starts_with($path, '/__probe__/')) {
+            $path = '/path-' . $this->next('path'); // a probe's own path stays readable, the host never
+        }
 
         return (is_array($parts) && isset($parts['scheme']) ? $parts['scheme'] : 'https') . '://' . $host . $path;
     }

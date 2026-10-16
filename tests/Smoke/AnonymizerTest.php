@@ -95,6 +95,22 @@ final class AnonymizerTest extends TestCase
         self::assertSame(['replaced value #2 (from "") still present at data[1].comment: "see «LEAK»"'], $this->anonymizer->leaks((string) json_encode($result), $result));
     }
 
+    public function testKeepsGenericAndProbeValues(): void
+    {
+        self::assertSame(['/', 'x', '/__probe__/redirect', 'https://www.example.com/__probe__/target'], $this->anonymizer->value(['/', 'x', '/__probe__/redirect', 'https://www.real-zone.de/__probe__/target']));
+    }
+
+    public function testFreeTextKeepsItsStructureAndLosesIds(): void
+    {
+        $this->anonymizer->seed(['id' => 4242], ['id' => 1000]);
+        $this->anonymizer->value(['source' => '/', 'id' => 777777]);
+
+        self::assertSame(
+            'Myra rejected PUT https://api.example.com/domain/1000/redirects/www.example.com/90001 (HTTP 400): edited.',
+            $this->anonymizer->text('Myra rejected PUT https://api.example.com/domain/4242/redirects/www.real-zone.de/777777 (HTTP 400): edited.'),
+        );
+    }
+
     public function testAnonymisesKeysThatAreData(): void
     {
         self::assertSame(['www.example.com' => ['type' => 'permanent']], $this->anonymizer->value(['www.real-zone.de' => ['type' => 'permanent']]));
