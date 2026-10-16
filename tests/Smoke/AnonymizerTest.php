@@ -127,6 +127,14 @@ final class AnonymizerTest extends TestCase
         self::assertSame(['www.example.com' => ['type' => 'permanent']], $this->anonymizer->value(['www.real-zone.de' => ['type' => 'permanent']]));
     }
 
+    public function testAnonymisesTheDomainIdOfAnAllKey(): void
+    {
+        $id = $this->anonymizer->value(4242, 'id');
+        self::assertIsInt($id);
+
+        self::assertSame(['ALL-' . $id => 1, 'ALL' => 2], $this->anonymizer->value(['ALL-4242' => 1, 'ALL' => 2]));
+    }
+
     public function testAnonymisesFreeText(): void
     {
         $text = $this->anonymizer->text("IP,TYPE\n100.64.0.9/32,WHITELIST\nwww.real-zone.de. 300 IN A 10.1.2.3\nadmin@customer.de\n");
@@ -158,5 +166,19 @@ final class AnonymizerTest extends TestCase
         $result = (string) json_encode($this->anonymizer->value(['name' => 'www.real-zone.de', 'ip' => '100.64.0.77', 'ip6' => '2a00:1234::1', 'created' => '2026-10-16T12:00:00+02:00', 'mail' => 'a@b.de']));
 
         self::assertSame([], $this->anonymizer->leaks($result));
+    }
+
+    public function testKeepsTheDomainOfAnAllNotationAndViolationCodes(): void
+    {
+        self::assertSame(
+            ['fqdn' => ['ALL:www.example.com'], 'code' => 'INTERNAL_ERROR', 'name' => 'redacted-1'],
+            $this->anonymizer->value(['fqdn' => ['ALL:www.real-zone.de'], 'code' => 'INTERNAL_ERROR', 'name' => 'INTERNAL_ERROR']),
+        );
+    }
+
+    public function testAPathOfWordsAndTimestampsIsNoBase64(): void
+    {
+        self::assertSame([], $this->anonymizer->leaks('{"path":"/statistics/histogram/1792051200/1792058399/total-requests/hourly/0/1"}'));
+        self::assertSame(['long base64'], $this->anonymizer->leaks('{"token":"' . str_repeat('aB3/', 10) . '"}'));
     }
 }

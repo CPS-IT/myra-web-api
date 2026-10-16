@@ -185,7 +185,8 @@ final class Anonymizer
         $checks = [
             'e-mail address' => '/[\w.+-]+@(?!example\.(com|org|net)\b)[\w-]+(\.[\w-]+)+/',
             'PEM block' => '/-----BEGIN /',
-            'long base64' => '#[A-Za-z0-9+/]{40,}={0,2}#',
+            // with an upper-case letter or "+": a URL path of lower-case words and numbers is no base64
+            'long base64' => '#(?<![A-Za-z0-9+/])(?=[A-Za-z0-9+/]*[A-Z+])[A-Za-z0-9+/]{40,}={0,2}#',
             'long hex' => '/\b[0-9a-f]{32,}\b/i',
             'IPv4 outside documentation ranges' => '#\b(?!192\.0\.2\.|198\.51\.100\.|203\.0\.113\.)(\d{1,3}\.){3}\d{1,3}\b#',
             // hex groups with "::" or at least four colons (times like 12:00:00 have neither)
@@ -205,6 +206,11 @@ final class Anonymizer
      */
     private function key(string $key): string
     {
+        // "ALL-{domain id}": a domain with all its subdomains (statistics)
+        if (preg_match('/^ALL-(\d+)$/', $key, $m) === 1) {
+            return 'ALL-' . $this->id((int) $m[1]);
+        }
+
         return preg_match('/^([\w-]+\.)+[a-z]{2,}\.?$|^[\d.:\/]+$|@/i', $key) === 1 ? $this->string($key, 'key') : $key;
     }
 
@@ -265,10 +271,16 @@ final class Anonymizer
         }
         // generic or ours: dates, documented words, the root path, single characters and the
         // probes' own values (/__probe__/…) carry no customer data
+        // Myra's violation codes (INTERNAL_ERROR, DOMAIN_DOES_NOT_EXIST, …): consumers read them
+        if ($key === 'code' && preg_match('/^[A-Z][A-Z0-9]*(_[A-Z0-9]+)+$/', $value) === 1) {
+            return $value;
+        }
         if (self::isDate($value) || $this->vocabulary->has($value) || strlen($value) <= 1 || str_starts_with($value, '/__probe__/') || (str_starts_with($value, '__probe__') && !str_contains($value, '.')) || self::isDocumentationIp($value)) {
             return $value;
         }
         $fake = match (true) {
+            // "ALL:{domain}": the domain with all its subdomains (statistics)
+            preg_match('/^ALL:(([a-z0-9_-]+\.)+[a-z]{2,})$/i', $value, $m) === 1 => 'ALL:' . $this->host($m[1]),
             preg_match('#^(\d{1,3}\.){3}\d{1,3}(/\d{1,2})?$#', $value) === 1 => $this->ipv4($value),
             preg_match('#^[0-9a-f:]+(/\d{1,3})?$#i', $value) === 1 && substr_count($value, ':') >= 2 => $this->ipv6($value),
             preg_match('/^[\w.+-]+@[\w-]+(\.[\w-]+)+$/', $value) === 1 => 'user' . $this->next('email') . '@example.com',
