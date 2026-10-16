@@ -32,6 +32,7 @@ final readonly class Client implements Contract\Client
     private SubdomainSettings $subdomainSettings;
     private Maintenances $maintenances;
     private ErrorPages $errorPages;
+    private IpRanges $ipRanges;
 
     /**
      * @param string $language language of Myra's messages (violations): "en" or "de"
@@ -67,6 +68,7 @@ final readonly class Client implements Contract\Client
         $this->subdomainSettings = new SubdomainSettings($transport);
         $this->maintenances = new Maintenances($transport);
         $this->errorPages = new ErrorPages($transport);
+        $this->ipRanges = new IpRanges($transport);
     }
 
     public function domains(): Domains
@@ -112,5 +114,10 @@ final readonly class Client implements Contract\Client
     public function errorPages(): ErrorPages
     {
         return $this->errorPages;
+    }
+
+    public function ipRanges(): IpRanges
+    {
+        return $this->ipRanges;
     }
 }

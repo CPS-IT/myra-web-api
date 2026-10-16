@@ -205,10 +205,12 @@ _POST reads_
 
 ## IP ranges
 
+_done; v1 lists only the enabled ranges, v2 all — `active()` is the same in both_
+
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
-| v1 | `GET /{lang}/rapi/networks` | read | R | – |
-| v2 | `GET /ip-ranges` | read | R | – |
+| v1 | `GET /{lang}/rapi/networks` | read | R | ✓ |
+| v2 | `GET /ip-ranges` | read | R | ✓ |
 
 ## BIND zone file
 

@@ -1278,5 +1278,55 @@
         "status": 204,
         "finding": "v2 delete: HTTP 204",
         "file": "v2-0126-errorpages-delete.json"
+    },
+    {
+        "case": "127",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/networks",
+        "status": 200,
+        "finding": "v1 lists only the enabled ranges (22) \u2014 exactly the enabled ones of v2",
+        "file": "v1-0127-ip-ranges-networks.json"
+    },
+    {
+        "case": "128",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/networks?page=2&pageSize=10",
+        "status": 200,
+        "finding": "v1 pages by query (?page=&pageSize=), although the manual shows none",
+        "file": "v1-0128-probe-en-rapi-networks-page-2-pageSize-10.json"
+    },
+    {
+        "case": "129",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/networks/2",
+        "status": 403,
+        "finding": "no /networks/{page} route: HTTP 403, empty body",
+        "file": "v1-0129-probe-en-rapi-networks-2.json"
+    },
+    {
+        "case": "130",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/ip-ranges",
+        "status": 200,
+        "finding": "v2 lists ALL ranges (37), incl. 15 disabled with validTo in the past; same objects and ids as v1",
+        "file": "v2-0130-ip-ranges.json"
+    },
+    {
+        "case": "131",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/ip-ranges?page=2&pageSize=10",
+        "status": 200,
+        "finding": "v2 pages by query (?page=&pageSize=; separate run, so other fake ids)",
+        "file": "v2-0131-probe-ip-ranges-page-2-pageSize-10.json"
     }
 ]

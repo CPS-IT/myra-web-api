@@ -40,6 +40,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V1\SubdomainSettings::class)]
 #[CoversClass(V1\Maintenances::class)]
 #[CoversClass(V1\ErrorPages::class)]
+#[CoversClass(V1\IpRanges::class)]
 #[CoversClass(V2\Client::class)]
 #[CoversClass(V2\Domains::class)]
 #[CoversClass(V2\DnsRecords::class)]
@@ -50,6 +51,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V2\SubdomainSettings::class)]
 #[CoversClass(V2\Maintenances::class)]
 #[CoversClass(V2\ErrorPages::class)]
+#[CoversClass(V2\IpRanges::class)]
 #[CoversClass(V2\MaintenanceTemplates::class)]
 #[CoversClass(V2\DomainIdResolver::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
@@ -70,6 +72,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(\Myracloud\WebApi\Model\CacheSetting::class)]
 #[UsesClass(\Myracloud\WebApi\Model\Settings::class)]
 #[UsesClass(\Myracloud\WebApi\Model\ErrorPage::class)]
+#[UsesClass(\Myracloud\WebApi\Model\IpRange::class)]
 #[UsesClass(\Myracloud\WebApi\Exception\RequestRejectedException::class)]
 final class ContractTest extends TestCase
 {
@@ -252,6 +255,28 @@ final class ContractTest extends TestCase
         self::assertSame(
             [['example.com', 502, 90400], ['example.com', 504, 90401], ['www.example.com', 502, 90402], ['www.example.com', 504, 90403]],
             array_map(static fn(\Myracloud\WebApi\Model\ErrorPage $p): array => [$p->subdomain(), $p->errorCode(), $p->id()], $pages),
+        );
+    }
+
+    /**
+     * v1 lists only the enabled ranges, v2 all of them; active() is the same in both.
+     *
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testActiveIpRangesAreTheSameInBothVersions(string $version, Closure $auth): void
+    {
+        $http = (new FakeHttpClient())->queue(Fixture::response($version . '/ip-ranges/list'));
+        $v1 = Fixture::load('v1/ip-ranges/list')['response']['body'];
+        self::assertIsArray($v1);
+        self::assertIsArray($v1['list']);
+
+        $active = self::client($version, $auth(), $http)->ipRanges()->active();
+
+        self::assertSame(
+            array_map(static fn(mixed $range): mixed => is_array($range) ? [$range['id'], $range['network']] : null, $v1['list']),
+            array_map(static fn(\Myracloud\WebApi\Model\IpRange $range): array => [$range->id(), $range->network()], $active),
         );
     }
 

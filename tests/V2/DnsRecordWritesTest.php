@@ -29,6 +29,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(V2\SubdomainSettings::class)]
 #[UsesClass(V2\Maintenances::class)]
 #[UsesClass(V2\ErrorPages::class)]
+#[UsesClass(V2\IpRanges::class)]
 #[UsesClass(V2\MaintenanceTemplates::class)]
 #[UsesClass(V2\DomainIdResolver::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]

@@ -210,6 +210,8 @@ final class Emulator
         return match (true) {
             $this->method === 'GET' && preg_match('#^/domains/(\d+)$#', $route, $m) === 1
                 => Answer::page('v1/domains/list', 'list', (int) $m[1]),
+            $this->method === 'GET' && $route === '/networks'
+                => Answer::page('v1/ip-ranges/list', 'list', $this->page()),
             $this->method === 'GET' && preg_match('#^/dnsRecords/([^/]+)/(\d+)$#', $route, $m) === 1
                 => rawurldecode($m[1]) === 'example.com'
                     ? Answer::page(array_key_exists('loadbalancer', $this->query()) ? 'v1/dns-records/load-balancing' : 'v1/dns-records/list', 'list', (int) $m[2])
@@ -243,12 +245,13 @@ final class Emulator
 
     private function v2(string $route): Answer
     {
-        $page = $this->query()['page'] ?? '1';
-        $page = max(1, is_string($page) ? (int) $page : 1);
+        $page = $this->page();
 
         return match (true) {
             $this->method === 'GET' && $route === '/domains'
                 => Answer::page('v2/domains/list', 'data', $page),
+            $this->method === 'GET' && $route === '/ip-ranges'
+                => Answer::page('v2/ip-ranges/list', 'data', $page),
             preg_match('#^/domain/(\d+)/(redirects|ip-filters)/([^/]+)(/(\d+|export|import))?$#', $route, $m) === 1
                 => $this->v2Vhost(self::V2_AREAS[$m[2]], (int) $m[1], rawurldecode($m[3]), $m[5] ?? null, $page),
             preg_match('#^/domain/(\d+)/([^/]+)/settings$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
@@ -463,6 +466,16 @@ final class Emulator
             'recursive' => $data['recursive'] ?? false,
             'bulk' => $bulk,
         ]]);
+    }
+
+    /**
+     * `?page=` (v2, and v1 IP ranges), 1 without.
+     */
+    private function page(): int
+    {
+        $page = $this->query()['page'] ?? '1';
+
+        return max(1, is_string($page) ? (int) $page : 1);
     }
 
     /**

@@ -149,6 +149,11 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 124 | v2 | `GET /domain/1140/errorpages` | 200 | the list with the probe page, unpaged |
 | 125 | v2 | `POST /domain/1140/errorpages` | 201 | set again: HTTP 201, content replaced |
 | 126 | v2 | `DELETE /domain/1140/errorpages` | 204 | v2 delete: HTTP 204 |
+| 127 | v1 | `GET /en/rapi/networks` | 200 | v1 lists only the enabled ranges (22) — exactly the enabled ones of v2 |
+| 128 | v1 | `GET /en/rapi/networks?page=2&pageSize=10` | 200 | v1 pages by query (?page=&pageSize=), although the manual shows none |
+| 129 | v1 | `GET /en/rapi/networks/2` | 403 | no /networks/{page} route: HTTP 403, empty body |
+| 130 | v2 | `GET /ip-ranges` | 200 | v2 lists ALL ranges (37), incl. 15 disabled with validTo in the past; same objects and ids as v1 |
+| 131 | v2 | `GET /ip-ranges?page=2&pageSize=10` | 200 | v2 pages by query (?page=&pageSize=; separate run, so other fake ids) |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.

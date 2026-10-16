@@ -103,6 +103,23 @@ final class IntegrationTest extends TestCase
     }
 
     /**
+     * Pages by query, across many pages of 2; active() is the same set in both versions.
+     *
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testListsMyrasIpRanges(string $version, Closure $auth): void
+    {
+        $ranges = self::client($version, $auth())->ipRanges();
+
+        self::assertCount($version === 'v1' ? 22 : 37, $ranges->list());
+        self::assertCount(22, $ranges->active());
+        self::assertContains('GET /' . ($version === 'v1' ? 'en/rapi/networks' : 'ip-ranges') . '?page=11', self::requests());
+        self::assertAllAuthenticated();
+    }
+
+    /**
      * @param 'v1'|'v2' $version
      * @param Closure(): Authentication $auth
      */

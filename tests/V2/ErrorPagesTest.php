@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
  * As captured with the probe (an error page for code 413, free on the vhost).
  */
 #[CoversClass(V2\ErrorPages::class)]
+#[UsesClass(V2\IpRanges::class)]
 #[UsesClass(V2\Client::class)]
 #[UsesClass(V2\Domains::class)]
 #[UsesClass(V2\DnsRecords::class)]

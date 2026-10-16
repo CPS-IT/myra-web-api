@@ -29,4 +29,6 @@ interface Client
     public function maintenances(): Maintenances;
 
     public function errorPages(): ErrorPages;
+
+    public function ipRanges(): IpRanges;
 }
