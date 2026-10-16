@@ -17,4 +17,6 @@ interface Client
     public function dnsRecords(): DnsRecords;
 
     public function cacheClear(): CacheClearing;
+
+    public function redirects(): Redirects;
 }

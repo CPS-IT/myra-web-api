@@ -26,6 +26,7 @@ final readonly class Client implements Contract\Client
     private Domains $domains;
     private DnsRecords $dnsRecords;
     private CacheClearing $cacheClear;
+    private Redirects $redirects;
 
     /**
      * @param string $language language of Myra's messages (violations): "en" or "de"
@@ -55,6 +56,7 @@ final readonly class Client implements Contract\Client
         $this->domains = new Domains($transport);
         $this->dnsRecords = new DnsRecords($transport);
         $this->cacheClear = new CacheClearing($transport);
+        $this->redirects = new Redirects($transport);
     }
 
     public function domains(): Domains
@@ -70,5 +72,10 @@ final readonly class Client implements Contract\Client
     public function cacheClear(): CacheClearing
     {
         return $this->cacheClear;
+    }
+
+    public function redirects(): Redirects
+    {
+        return $this->redirects;
     }
 }

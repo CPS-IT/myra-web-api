@@ -28,6 +28,7 @@ final readonly class Client implements Contract\Client
     private DomainIdResolver $domainIds;
     private DnsRecords $dnsRecords;
     private CacheClearing $cacheClear;
+    private Redirects $redirects;
 
     /**
      * @param string $baseUri e.g. of a local emulator
@@ -45,6 +46,7 @@ final readonly class Client implements Contract\Client
         $this->domainIds = new DomainIdResolver($this->domains);
         $this->dnsRecords = new DnsRecords($transport, $this->domainIds);
         $this->cacheClear = new CacheClearing($transport, $this->domainIds);
+        $this->redirects = new Redirects($transport, $this->domainIds);
     }
 
     public function domains(): Domains
@@ -60,6 +62,11 @@ final readonly class Client implements Contract\Client
     public function cacheClear(): CacheClearing
     {
         return $this->cacheClear;
+    }
+
+    public function redirects(): Redirects
+    {
+        return $this->redirects;
     }
 
     /**

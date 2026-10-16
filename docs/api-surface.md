@@ -65,19 +65,19 @@ _done_
 
 ## Redirects
 
-_next: sets the pattern for per-vHost areas and writes_
+_done: sets the pattern for per-vhost areas and writes (docs/2.0-design.md, "Area pattern"); writes unverified until captured_
 
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
-| v1 | `GET /{lang}/rapi/redirects/{domain}/{page}` | read | R | – |
-| v1 | `PUT /{lang}/rapi/redirects/{domain}` | write | – | – |
-| v1 | `POST /{lang}/rapi/redirects/{domain}` | write | – | – |
-| v1 | `DELETE /{lang}/rapi/redirects/{domain}` | write | – | – |
-| v2 | `GET /domain/{domainId}/redirects/{name}/{id}` | read | R | – |
-| v2 | `PUT /domain/{domainId}/redirects/{name}/{id}` | write | – | – |
-| v2 | `DELETE /domain/{domainId}/redirects/{name}/{id}` | write | – | – |
-| v2 | `GET /domain/{domainId}/redirects/{vHostName}` | read | R | – |
-| v2 | `POST /domain/{domainId}/redirects/{name}` | write | – | – |
+| v1 | `GET /{lang}/rapi/redirects/{domain}/{page}` | read | R | ✓ |
+| v1 | `PUT /{lang}/rapi/redirects/{domain}` | write | – | ✓u |
+| v1 | `POST /{lang}/rapi/redirects/{domain}` | write | – | ✓u |
+| v1 | `DELETE /{lang}/rapi/redirects/{domain}` | write | – | ✓u |
+| v2 | `GET /domain/{domainId}/redirects/{name}/{id}` | read | R | ✓ |
+| v2 | `PUT /domain/{domainId}/redirects/{name}/{id}` | write | – | ✓u |
+| v2 | `DELETE /domain/{domainId}/redirects/{name}/{id}` | write | – | ✓u |
+| v2 | `GET /domain/{domainId}/redirects/{vHostName}` | read | R | ✓ |
+| v2 | `POST /domain/{domainId}/redirects/{name}` | write | – | ✓u |
 
 ## IP filter
 

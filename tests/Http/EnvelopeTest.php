@@ -183,6 +183,24 @@ final class EnvelopeTest extends TestCase
         self::assertSame(['data' => []], Envelope::parse(self::request(), new Response(200, [], '{"data":[]}'))->toArray());
     }
 
+    #[TestWith([200])]
+    #[TestWith([204])]
+    #[TestWith([299])]
+    public function testAnEmptySuccessHasNoContent(int $status): void
+    {
+        self::assertSame([], Envelope::parse(self::request(), new Response($status))->toArray());
+    }
+
+    #[TestWith([199])]
+    #[TestWith([300])]
+    public function testAnEmptyAnswerOutside2xxIsNoSuccess(int $status): void
+    {
+        $this->expectException(TransportException::class);
+        $this->expectExceptionMessage(sprintf('unexpected response (HTTP %d)', $status));
+
+        Envelope::parse(self::request(), new Response($status));
+    }
+
     public function testAcceptsAnEmptyJsonObject(): void
     {
         self::assertSame([], Envelope::parse(self::request(), new Response(200, [], '{}'))->toArray());
@@ -195,11 +213,10 @@ final class EnvelopeTest extends TestCase
     {
         yield '500 with an envelope' => [500, '{"error":true,"violationList":[]}', 'PUT ' . self::URI . ': server error (HTTP 500).'];
         yield '503' => [503, '', 'PUT ' . self::URI . ': server error (HTTP 503).'];
-        yield '200 empty' => [200, '', 'PUT ' . self::URI . ': the response is not a JSON object (HTTP 200).'];
         yield '200 invalid JSON' => [200, '{"error":', 'PUT ' . self::URI . ': the response is not a JSON object (HTTP 200).'];
         yield '200 JSON list' => [200, '[1,2]', 'PUT ' . self::URI . ': the response is not a JSON object (HTTP 200).'];
         yield '200 JSON scalar' => [200, '"ok"', 'PUT ' . self::URI . ': the response is not a JSON object (HTTP 200).'];
-        yield '299 empty' => [299, '', 'PUT ' . self::URI . ': the response is not a JSON object (HTTP 299).'];
+        yield '299 not JSON' => [299, 'ok', 'PUT ' . self::URI . ': the response is not a JSON object (HTTP 299).'];
         yield '199' => [199, '{"error":false}', 'PUT ' . self::URI . ': unexpected response (HTTP 199).'];
         yield '300' => [300, '{"error":false}', 'PUT ' . self::URI . ': unexpected response (HTTP 300).'];
         yield '400' => [400, '<html>', 'PUT ' . self::URI . ': unexpected response (HTTP 400).'];

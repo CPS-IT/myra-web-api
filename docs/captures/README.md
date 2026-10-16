@@ -41,10 +41,17 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 16 | v2 | `GET /domains?page=2` | 200 | paging via `?page=`: echoed as `page: 2`; past the last page `data` is empty; `count` = total hits |
 | 17 | v1 | `GET /en/rapi/domains/1` | 200 | same `DomainVO` as v2, field by field and ids; no `paused`/`pausedUntil` (the manual shows them) |
 | 18 | v1 | `GET /en/rapi/domains/2` | 200 | page in the path, echoed; past the last page `list` is empty; `count` = total |
+| 19 | v1 | `GET /en/rapi/redirects/example.com/1` | 200 | redirects of the zone apex: per vhost (subDomainName = the apex only) |
+| 20 | v1 | `GET /en/rapi/redirects/www.example.com/1` | 200 | v1 takes a subdomain where the manual says {domain}: only that vhost's redirects |
+| 21 | v1 | `GET /en/rapi/redirects/example.org/1` | 200 | no redirects: empty list, count 0 |
+| 22 | v2 | `GET /domain/1000/redirects/example.com` | 200 | same DnsRedirectVO as v1; v2 lists per vHostName |
+| 23 | v2 | `GET /domain/1000/redirects/example.com/90392` | 200 | get by id: data is a one-element list, no paging fields |
+| 24 | v2 | `GET /domain/1140/redirects/example.org` | 403 | vHostName that is no vhost: 403 'The entity does not exist.' |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.
 
+Cases 19+ come from `tests/Smoke/capture.php` (anonymised in memory, see its docblock).
 Cases 17/18 and the HMAC-on-v2 confirmation come from `tests/Smoke/run.php` (all four
 version × auth combinations through this package, 12/12 passed): v2 signed with HMAC
 works, including a query string (`/domains?page=2`); Bearer works on v1.

@@ -18,7 +18,10 @@ declare(strict_types=1);
  * - v1 unknown domain on PUT cacheClear → the GET dnsRecords answer;
  * - v1 `recursive` not a boolean → the v2 wrong-type answer;
  * - paging (MYRA_EMULATOR_PAGE_SIZE cuts the captured lists), the echo of a cache clear
- *   (built like the captured ones) and the 404 "Not emulated" envelope.
+ *   (built like the captured ones) and the 404 "Not emulated" envelope;
+ * - every redirect write (create, update, delete: not captured yet — echoed like the
+ *   manual/spec describe; stateless, nothing is stored) and v2 redirects of www.example.com
+ *   (the v1 capture's objects in a v2 envelope).
  *
  * Authentication is checked independently of the package's own code: HMAC recomputed
  * after the v2 spec (docs/v2/openapi.json, info.description §2.1.2), or a Bearer token.
@@ -97,6 +100,15 @@ final readonly class Answer
         return new self(200, 'application/json', ['error' => false, 'violationList' => [], 'warningList' => [], $key => $content]);
     }
 
+    public function rename(string $from, string $to): self
+    {
+        $body = is_array($this->body) ? $this->body : [];
+        $body[$to] = $body[$from] ?? [];
+        unset($body[$from]);
+
+        return new self($this->status, $this->contentType, $body);
+    }
+
     public function send(): void
     {
         http_response_code($this->status);
@@ -111,6 +123,8 @@ final class Emulator
 {
     /** The emulated account: domain name → id, as in the fixtures. */
     private const DOMAINS = ['example.com' => 1000, 'example.org' => 1140];
+    /** Vhosts with redirects → their (v1) capture. */
+    private const REDIRECTS = ['example.com' => 'v1/redirects/list-apex', 'www.example.com' => 'v1/redirects/list-www'];
 
     /**
      * @param array<string, string> $headers lower-cased names
@@ -179,6 +193,8 @@ final class Emulator
                 => rawurldecode($m[1]) === 'example.com'
                     ? Answer::page('v1/dns-records/list', 'list', (int) $m[2])
                     : Answer::fixture('v1/errors/unknown-domain'),
+            preg_match('#^/redirects/([^/]+)(/(\d+))?$#', $route, $m) === 1
+                => $this->v1Redirects(rawurldecode($m[1]), isset($m[3]) ? (int) $m[3] : null),
             $this->method === 'PUT' && preg_match('#^/cacheClear/([^/]+)$#', $route, $m) === 1
                 => isset(self::DOMAINS[rawurldecode($m[1])])
                     ? $this->cacheClear('v1', rawurldecode($m[1]), 'targetObject')
@@ -195,6 +211,8 @@ final class Emulator
         return match (true) {
             $this->method === 'GET' && $route === '/domains'
                 => Answer::page('v2/domains/list', 'data', $page),
+            preg_match('#^/domain/(\d+)/redirects/([^/]+)(/(\d+))?$#', $route, $m) === 1
+                => $this->v2Redirects((int) $m[1], rawurldecode($m[2]), isset($m[4]) ? (int) $m[4] : null, $page),
             preg_match('#^/domain/([^/]+)/(dns-records|cache-clear)$#', $route, $m) === 1
                 => $this->v2Domain($m[1], $m[2], $page),
             default => self::notEmulated($this->method, $route),
@@ -218,6 +236,53 @@ final class Emulator
             $this->method === 'PUT' && $area === 'cache-clear' => $this->cacheClear('v2', $name, 'data'),
             default => self::notEmulated($this->method, '/domain/' . $id . '/' . $area),
         };
+    }
+
+    private function v1Redirects(string $vhost, ?int $page): Answer
+    {
+        return match (true) {
+            $this->method === 'GET' && $page !== null => Answer::page(self::REDIRECTS[$vhost] ?? 'v1/redirects/list-empty', 'list', $page),
+            $this->method === 'PUT' => $this->redirectWritten('targetObject', null),
+            $this->method === 'POST' => $this->redirectWritten('targetObject', null),
+            $this->method === 'DELETE' => Answer::success('targetObject', []),
+            default => self::notEmulated($this->method, '/redirects/' . $vhost),
+        };
+    }
+
+    private function v2Redirects(int $domainId, string $vhost, ?int $id, int $page): Answer
+    {
+        $name = array_search($domainId, self::DOMAINS, true);
+        if ($name === false || !isset(self::REDIRECTS[$vhost])) {
+            return Answer::fixture($name === false ? 'v2/errors/unknown-domain-id' : 'v2/redirects/unknown-vhost');
+        }
+
+        return match (true) {
+            $this->method === 'GET' && $id === null => $vhost === 'example.com'
+                ? Answer::page('v2/redirects/list-apex', 'data', $page)
+                : Answer::page(self::REDIRECTS[$vhost], 'list', $page)->rename('list', 'data'),
+            $this->method === 'GET' => $id === 90392 ? Answer::fixture('v2/redirects/get') : Answer::fixture('v2/redirects/unknown-vhost'),
+            $this->method === 'POST' && $id === null => $this->redirectWritten('data', null),
+            $this->method === 'PUT' && $id !== null => $this->redirectWritten('data', $id),
+            $this->method === 'DELETE' && $id !== null => new Answer(200, null, ''),
+            default => self::notEmulated($this->method, '/domain/' . $domainId . '/redirects/' . $vhost),
+        };
+    }
+
+    /**
+     * Echo of a redirect write: the sent object with id and a new modified (assumed answer).
+     */
+    private function redirectWritten(string $key, ?int $id): Answer
+    {
+        $redirect = json_decode($this->body, true);
+        if (!is_array($redirect)) {
+            return Answer::fixture(($key === 'data' ? 'v2' : 'v1') . '/errors/malformed-body');
+        }
+        $redirect = ['objectType' => 'DnsRedirectVO'] + $redirect;
+        $redirect['id'] = $id ?? (is_int($redirect['id'] ?? null) ? $redirect['id'] : 4711);
+        $redirect['created'] ??= '2026-10-16T12:00:00+0200';
+        $redirect['modified'] = '2026-10-16T12:00:0' . (is_string($redirect['modified'] ?? null) ? '1' : '0') . '+0200';
+
+        return Answer::success($key, [$redirect]);
     }
 
     /**

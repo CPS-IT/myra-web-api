@@ -198,5 +198,65 @@
         "status": 200,
         "finding": "paging v1: page in the path, echoed as page: 2; past the last page list is empty; count = t",
         "file": "v1-0018-domain-list-page-2.json"
+    },
+    {
+        "case": "19",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/redirects/example.com/1",
+        "status": 200,
+        "finding": "redirects of the zone apex: per vhost (subDomainName = the apex only)",
+        "file": "v1-0019-redirects-apex.json"
+    },
+    {
+        "case": "20",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/redirects/www.example.com/1",
+        "status": 200,
+        "finding": "v1 takes a subdomain where the manual says {domain}: only that vhost's redirects",
+        "file": "v1-0020-redirects-subdomain.json"
+    },
+    {
+        "case": "21",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/redirects/example.org/1",
+        "status": 200,
+        "finding": "no redirects: empty list, count 0",
+        "file": "v1-0021-redirects-empty.json"
+    },
+    {
+        "case": "22",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/redirects/example.com",
+        "status": 200,
+        "finding": "same DnsRedirectVO as v1; v2 lists per vHostName",
+        "file": "v2-0022-redirects-apex.json"
+    },
+    {
+        "case": "23",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/redirects/example.com/90392",
+        "status": 200,
+        "finding": "get by id: data is a one-element list, no paging fields",
+        "file": "v2-0023-redirect-by-id.json"
+    },
+    {
+        "case": "24",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/redirects/example.org",
+        "status": 403,
+        "finding": "vHostName that is no vhost: 403 'The entity does not exist.'",
+        "file": "v2-0024-redirects-unknown-vhost.json"
     }
 ]

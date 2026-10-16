@@ -117,6 +117,17 @@ final readonly class JsonObject
     }
 
     /**
+     * The first object of a list — single objects come as one-element lists (v1
+     * `targetObject`, v2 `data` of a get by id or a write).
+     *
+     * @throws TransportException if the list is empty
+     */
+    public function first(string $key): self
+    {
+        return $this->objects($key)[0] ?? throw new TransportException(sprintf('Unexpected response: %s is empty.', $this->pathOf($key)));
+    }
+
+    /**
      * @return list<string>
      *
      * @throws TransportException

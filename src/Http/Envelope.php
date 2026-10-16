@@ -24,6 +24,7 @@ use Psr\Http\Message\ResponseInterface;
  * - no envelope, HTTP 401/403          → AccessDeniedException (wrong credentials; v1 also
  *                                         for an unknown domain — empty or text/plain body)
  * - 5xx, other status, unreadable body → TransportException
+ * - 2xx with an empty body             → success without content (v2 deletes)
  *
  * @internal
  */
@@ -46,6 +47,9 @@ final class Envelope
         }
 
         $content = (string) $response->getBody();
+        if ($content === '' && self::isSuccess($status)) {
+            return new JsonObject([]); // e.g. v2 deletes: "only a 200 HTTP code"
+        }
         $body = self::decodeObject($content);
         if ($body !== null) {
             $error = $body['error'] ?? false;

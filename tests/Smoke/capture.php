@@ -277,6 +277,10 @@ foreach ($domains as $domain) {
     if (($page = firstId($errorPages)) !== null) {
         $capture('Error pages', 'v1', "/errorpage/$page");
     }
+    // v1, by subdomain: does v1 take a subdomain where the manual says {domain}?
+    foreach (["/redirects/www.$name/1", "/ipfilter/www.$name/1", "/cacheSettings/www.$name/1", "/maintenance/www.$name/1", "/subdomainSetting/www.$name"] as $path) {
+        $capture('v1 by subdomain', 'v1', $path);
+    }
     // v2, by id
     foreach (["/domains/$id", "/domains/$id/bind/Myra", "/domains/$id/bind/Origin", "/domains/$id/bind-raw/Myra", "/domains/$id/bind-raw/Origin",
         "/domains/$id/verification", "/domains/$id/foreign-descendants", "/domain/$id/load-balancing", "/domain/$id/subdomains",

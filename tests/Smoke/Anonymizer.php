@@ -90,6 +90,9 @@ final class Anonymizer
         if ($key === 'objectType') {
             return $value; // class names (RedirectVO, …): structure, not data
         }
+        if (is_string($value) && ($key === 'message' || preg_match('/^[a-z]{2}$/', $key) === 1)) {
+            return $this->text($value); // Myra's messages (violations, translations): prose stays, data goes
+        }
 
         return is_string($value) ? $this->string($value, $key) : $value;
     }

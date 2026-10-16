@@ -15,6 +15,7 @@ use Myracloud\WebApi\Exception\DomainNotFoundException;
 use Myracloud\WebApi\Exception\RequestRejectedException;
 use Myracloud\WebApi\Model\DnsRecord;
 use Myracloud\WebApi\Model\Domain;
+use Myracloud\WebApi\Model\Redirect;
 use Myracloud\WebApi\V1;
 use Myracloud\WebApi\V2;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -112,6 +113,48 @@ final class IntegrationTest extends TestCase
         self::assertSame(['/*.css', '/*.js'], $bulk[0]->bulk());
         $bodies = array_column(array_filter(self::server()->calls(), static fn(array $c): bool => $c['method'] === 'PUT'), 'body');
         self::assertSame(['{"fqdn":"www.example.com","resource":"/*","recursive":true}', '{"fqdn":"www.example.com","bulk":["/*.css","/*.js"],"recursive":false}'], $bodies);
+        self::assertAllAuthenticated();
+    }
+
+    /**
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testListsTheRedirectsOfEachVhost(string $version, Closure $auth): void
+    {
+        $redirects = self::client($version, $auth())->redirects();
+
+        self::assertSame([90392], array_map(static fn(Redirect $r): ?int => $r->id(), $redirects->list('example.com')));
+        self::assertSame([90404], array_map(static fn(Redirect $r): ?int => $r->id(), $redirects->list('www.example.com')));
+        self::assertAllAuthenticated();
+    }
+
+    /**
+     * Writes: the emulator echoes them as the manual/spec describe (not captured yet).
+     *
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testCreatesUpdatesAndDeletesARedirect(string $version, Closure $auth): void
+    {
+        $redirects = self::client($version, $auth())->redirects();
+
+        $created = $redirects->create(new Redirect('www.example.com', '/old', 'https://www.example.com/new', Redirect::TYPE_PERMANENT));
+        $updated = $redirects->update($created->withDestination('https://www.example.com/newer'));
+        $redirects->delete($updated);
+
+        self::assertSame(4711, $created->id());
+        self::assertSame('https://www.example.com/newer', $updated->destination());
+        self::assertNotSame($created->modified(), $updated->modified());
+        $writes = array_values(array_filter(self::requests(), static fn(string $r): bool => !str_starts_with($r, 'GET')));
+        self::assertSame(
+            $version === 'v1'
+                ? ['PUT /en/rapi/redirects/www.example.com', 'POST /en/rapi/redirects/www.example.com', 'DELETE /en/rapi/redirects/www.example.com']
+                : ['POST /domain/1000/redirects/www.example.com', 'PUT /domain/1000/redirects/www.example.com/4711', 'DELETE /domain/1000/redirects/www.example.com/4711'],
+            $writes,
+        );
         self::assertAllAuthenticated();
     }
 

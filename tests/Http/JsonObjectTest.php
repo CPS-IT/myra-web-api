@@ -106,6 +106,17 @@ final class JsonObjectTest extends TestCase
         $second->strings('items');
     }
 
+    public function testReadsTheFirstObjectOfAList(): void
+    {
+        $json = new JsonObject(['data' => [['id' => 1], ['id' => 2]], 'empty' => []], 'body');
+
+        self::assertSame(['id' => 1], $json->first('data')->toArray());
+
+        $this->expectException(TransportException::class);
+        $this->expectExceptionMessage('Unexpected response: body.empty is empty.');
+        $json->first('empty');
+    }
+
     public function testNamesListItemsByIndex(): void
     {
         $json = new JsonObject(['list' => [['a' => 1], 'b']]);
