@@ -19,6 +19,7 @@ use PHPUnit\Framework\TestCase;
  * Reads as captured; writes as in the manual / spec (unverified).
  */
 #[CoversClass(V2\SslCertificates::class)]
+#[UsesClass(V2\Zones::class)]
 #[UsesClass(V2\Client::class)]
 #[UsesClass(V2\Domains::class)]
 #[UsesClass(V2\DnsRecords::class)]

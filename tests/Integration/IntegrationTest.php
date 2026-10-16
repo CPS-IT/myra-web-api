@@ -122,6 +122,23 @@ final class IntegrationTest extends TestCase
     }
 
     /**
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testReadsTheZone(string $version, Closure $auth): void
+    {
+        $zones = self::client($version, $auth())->zones();
+
+        self::assertCount(6, $zones->get('example.org')->records());
+        self::assertStringContainsString('IN SOA', $zones->file('example.org'));
+        if ($zones instanceof V2\Zones) {
+            self::assertStringContainsString('IN SOA', $zones->file('example.org', V2\Zones::TARGET_ORIGIN));
+        }
+        self::assertAllAuthenticated();
+    }
+
+    /**
      * Reads as captured; upload and update against the emulator's echo (unverified at Myra).
      *
      * @param 'v1'|'v2' $version

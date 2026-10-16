@@ -35,4 +35,6 @@ interface Client
     public function statistics(): Statistics;
 
     public function sslCertificates(): SslCertificates;
+
+    public function zones(): Zones;
 }

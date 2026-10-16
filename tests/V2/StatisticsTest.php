@@ -24,6 +24,7 @@ use PHPUnit\Framework\TestCase;
  */
 #[CoversClass(V2\Statistics::class)]
 #[UsesClass(V2\SslCertificates::class)]
+#[UsesClass(V2\Zones::class)]
 #[CoversClass(\Myracloud\WebApi\Model\Graph::class)]
 #[CoversClass(\Myracloud\WebApi\Model\StatisticTotals::class)]
 #[CoversClass(\Myracloud\WebApi\Model\UrlStatistic::class)]

@@ -46,6 +46,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(V2\IpRanges::class)]
 #[UsesClass(V2\Statistics::class)]
 #[UsesClass(V2\SslCertificates::class)]
+#[UsesClass(V2\Zones::class)]
 #[UsesClass(V2\MaintenanceTemplates::class)]
 #[UsesClass(V2\Subdomains::class)]
 #[UsesClass(V2\DomainVerifications::class)]

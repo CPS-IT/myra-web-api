@@ -31,8 +31,8 @@ _done: list/page_
 | v2 | `GET /domains/{id}` | read | R | ✓ |
 | v2 | `PUT /domains/{id}` | write | – | – |
 | v2 | `DELETE /domains/{id}` | write | – | – |
-| v2 | `GET /domains/{id}/bind/{ipTarget}` | read | R✗ | – |
-| v2 | `GET /domains/{id}/bind-raw/{ipTarget}` | read | R✗ | – |
+| v2 | `GET /domains/{id}/bind/{ipTarget}` | read | R | ✓ |
+| v2 | `GET /domains/{id}/bind-raw/{ipTarget}` | read | R | ✓ |
 | v2 | `GET /domains` | read | R | ✓ |
 | v2 | `POST /domains` | write | – | – |
 
@@ -215,12 +215,12 @@ _done; v1 lists only the enabled ranges, v2 all — `active()` is the same in bo
 
 ## BIND zone file
 
-_v2 ops are in Domain (bind, bind-raw); raw = text_
+_done (187–192): `zones()`; v2 ops are in Domain (bind, bind-raw); raw = text; captured after the anonymiser learned Myra's name servers_
 
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
-| v1 | `GET /{lang}/rapi/bind/{domainName}` | read | R✗ | – |
-| v1 | `GET /{lang}/rapi/bindRaw/{domainName}` | read | R✗ | – |
+| v1 | `GET /{lang}/rapi/bind/{domainName}` | read | R | ✓ |
+| v1 | `GET /{lang}/rapi/bindRaw/{domainName}` | read | R | ✓ |
 
 ## Rate limit (v1 only)
 

@@ -45,6 +45,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V1\IpRanges::class)]
 #[CoversClass(V1\Statistics::class)]
 #[CoversClass(V1\SslCertificates::class)]
+#[CoversClass(V1\Zones::class)]
 #[CoversClass(V2\Client::class)]
 #[CoversClass(V2\Domains::class)]
 #[CoversClass(V2\DnsRecords::class)]
@@ -58,6 +59,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V2\IpRanges::class)]
 #[CoversClass(V2\Statistics::class)]
 #[CoversClass(V2\SslCertificates::class)]
+#[CoversClass(V2\Zones::class)]
 #[CoversClass(V2\MaintenanceTemplates::class)]
 #[CoversClass(V2\Subdomains::class)]
 #[CoversClass(V2\DomainVerifications::class)]
@@ -86,6 +88,8 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(\Myracloud\WebApi\Model\IpRange::class)]
 #[UsesClass(\Myracloud\WebApi\Model\StatisticQuery::class)]
 #[UsesClass(\Myracloud\WebApi\Model\SslCertificate::class)]
+#[CoversClass(\Myracloud\WebApi\Model\Zone::class)]
+#[CoversClass(\Myracloud\WebApi\Model\ZoneRecord::class)]
 #[UsesClass(\Myracloud\WebApi\Model\StatisticResult::class)]
 #[UsesClass(\Myracloud\WebApi\Model\StatisticValues::class)]
 #[UsesClass(\Myracloud\WebApi\Exception\RequestRejectedException::class)]
@@ -271,6 +275,35 @@ final class ContractTest extends TestCase
             [['example.com', 502, 90400], ['example.com', 504, 90401], ['www.example.com', 502, 90402], ['www.example.com', 504, 90403]],
             array_map(static fn(\Myracloud\WebApi\Model\ErrorPage $p): array => [$p->subdomain(), $p->errorCode(), $p->id()], $pages),
         );
+    }
+
+    /**
+     * The same zone in both versions, as data and as file.
+     *
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testReadsTheZone(string $version, Closure $auth): void
+    {
+        $http = self::answers($version, $version === 'v1' ? 'bind/zone' : 'bind/zone-myra');
+        $http->queue(Fixture::response($version === 'v1' ? 'v1/bind/file' : 'v2/bind/file-myra'));
+        $zones = self::client($version, $auth(), $http)->zones();
+
+        $zone = $zones->get('example.org');
+        $file = $zones->file('example.org');
+
+        self::assertSame(['example.org', 38400, 'support.myrasecurity.com'], [$zone->domain(), $zone->ttl(), $zone->hostmaster()]);
+        self::assertStringStartsWith('dns.dns', $zone->primaryDns());
+        self::assertGreaterThan(0, $zone->serial());
+        self::assertSame(
+            [['example.org', 'NS', null], ['example.org', 'NS', null], ['example.org', 'NS', null], ['example.org', 'NS', null], ['map.example.org', 'A', 300], ['map.example.org', 'AAAA', 300]],
+            array_map(static fn(\Myracloud\WebApi\Model\ZoneRecord $r): array => [$r->domain(), $r->type(), $r->ttl()], $zone->records()),
+        );
+        self::assertSame(['192.0.2.15', 'A'], [$zone->records()[4]->value(), $zone->records()[4]->raw()['type']]);
+        self::assertSame(38400, $zone->raw()['ttl']);
+        self::assertStringContainsString("map.example.org. 300 IN A 192.0.2.15\n", $file);
+        self::assertStringEndsWith($version === 'v1' ? '/en/rapi/bindRaw/example.org' : '/domains/1140/bind-raw/Myra', $http->lastRequest()->getUri()->getPath());
     }
 
     /**

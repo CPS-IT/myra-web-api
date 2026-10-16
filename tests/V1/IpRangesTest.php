@@ -19,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V1\IpRanges::class)]
 #[UsesClass(V1\Statistics::class)]
 #[UsesClass(V1\SslCertificates::class)]
+#[UsesClass(V1\Zones::class)]
 #[CoversClass(\Myracloud\WebApi\Model\IpRange::class)]
 #[UsesClass(V1\Client::class)]
 #[UsesClass(V1\Domains::class)]

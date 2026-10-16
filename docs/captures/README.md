@@ -209,6 +209,12 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 184 | v2 | `GET /organization/contact-types` | 200 | contact types: key + label (no objectType) |
 | 185 | v2 | `GET /organization/notes` | 200 | organisation notes: one OrganizationNoteVO without fields (none set) |
 | 186 | v2 | `POST /domain/1140/map.example.org/waf-rules` | 403 | probe WAF rule (disabled, only /__probe__/waf, log only) on the unused domain: HTTP 403, EMPTY body — although the user holds DomainWafRule CREATE; nothing was created (verified). Likely WAF not available for that domain; not retried |
+| 187 | v1 | `GET /en/rapi/bind/example.org` | 200 | v1 zone of a domain: DomainBindVO (SOA fields, version = serial, records with type/value/ttl/active, cnameAlt); Myra's name servers dns.dnsN.de stay (public) |
+| 188 | v1 | `GET /en/rapi/bindRaw/example.org` | 200 | v1 BIND zone file: text/plain |
+| 189 | v2 | `GET /domains/1140/bind/Myra` | 200 | v2 zone, ipTarget Myra: the same DomainBindVO as v1 (the SOA's primary name server rotates between calls) |
+| 190 | v2 | `GET /domains/1140/bind/Origin` | 200 | ipTarget Origin: for this zone the same records as Myra (what differs is not visible here) |
+| 191 | v2 | `GET /domains/1140/bind-raw/Myra` | 200 | v2 zone file, ipTarget Myra: text/plain |
+| 192 | v2 | `GET /domains/1140/bind-raw/Origin` | 200 | v2 zone file, ipTarget Origin |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.

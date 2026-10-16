@@ -20,6 +20,7 @@ use PHPUnit\Framework\TestCase;
  */
 #[CoversClass(V1\Statistics::class)]
 #[UsesClass(V1\SslCertificates::class)]
+#[UsesClass(V1\Zones::class)]
 #[UsesClass(V1\Client::class)]
 #[UsesClass(V1\Domains::class)]
 #[UsesClass(V1\DnsRecords::class)]

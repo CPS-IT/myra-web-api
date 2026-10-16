@@ -28,6 +28,7 @@ declare(strict_types=1);
  * - DNS record writes are echoed in the captured shapes (stateless); the dedicated v2 load
  *   balancing PUT answers the captured HTTP 500;
  * - users and organisation: writes echoed (spec only), deletes 204, the permission check grants;
+ * - zones (BIND): every domain answers the captured zone of example.org;
  * - SSL certificates: writes echoed without certificate, key and password (Myra never returns
  *   them — manual); v2 lists of example.org are the empty v1 list;
  * - subdomains: the account list ignores paging (captured) and filters like Myra; a verification
@@ -227,6 +228,8 @@ final class Emulator
         return match (true) {
             $this->method === 'GET' && preg_match('#^/domains/(\d+)$#', $route, $m) === 1
                 => Answer::page('v1/domains/list', 'list', (int) $m[1]),
+            $this->method === 'GET' && preg_match('#^/(bind|bindRaw)/([^/]+)$#', $route, $m) === 1 && isset(self::DOMAINS[rawurldecode($m[2])])
+                => Answer::fixture($m[1] === 'bind' ? 'v1/bind/zone' : 'v1/bind/file'),
             $this->method === 'POST' && $route === '/statistic/query'
                 => Answer::fixture('v1/statistics/query'),
             preg_match('#^/certificates/([^/]+)(/(\d+))?$#', $route, $m) === 1 && isset(self::DOMAINS[rawurldecode($m[1])])
@@ -286,6 +289,8 @@ final class Emulator
                 => in_array($fixture, ['users/list', 'users/activities', 'users/permissions-of-user'], true) ? Answer::page('v2/' . $fixture, 'data', $page) : Answer::fixture('v2/' . $fixture),
             $this->method !== 'GET' && preg_match('#^/(users|user|organization)(/|$)#', $route) === 1
                 => $this->userWrite($route),
+            $this->method === 'GET' && preg_match('#^/domains/(\d+)/(bind|bind-raw)/(Myra|Origin)$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
+                => Answer::fixture('v2/bind/' . ($m[2] === 'bind' ? 'zone-' : 'file-') . strtolower($m[3])),
             $this->method === 'GET' && $route === '/ssl-configurations'
                 => Answer::page('v2/certificates/configurations', 'data', $page),
             $this->method === 'GET' && preg_match('#^/domain/(\d+)/ssl/certificates(/\d+)?$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)

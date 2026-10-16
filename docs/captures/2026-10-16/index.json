@@ -1878,5 +1878,65 @@
         "status": 403,
         "finding": "probe WAF rule (disabled, only /__probe__/waf, log only) on the unused domain: HTTP 403, EMPTY body \u2014 although the user holds DomainWafRule CREATE; nothing was created (verified). Likely WAF not available for that domain; not retried",
         "file": "v2-0186-waf-failed.json"
+    },
+    {
+        "case": "187",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/bind/example.org",
+        "status": 200,
+        "finding": "v1 zone of a domain: DomainBindVO (SOA fields, version = serial, records with type/value/ttl/active, cnameAlt); Myra's name servers dns.dnsN.de stay (public)",
+        "file": "v1-0187-probe-en-rapi-bind-example-org.json"
+    },
+    {
+        "case": "188",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/bindRaw/example.org",
+        "status": 200,
+        "finding": "v1 BIND zone file: text/plain",
+        "file": "v1-0188-probe-en-rapi-bindraw-example-org.json"
+    },
+    {
+        "case": "189",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domains/1140/bind/Myra",
+        "status": 200,
+        "finding": "v2 zone, ipTarget Myra: the same DomainBindVO as v1 (the SOA's primary name server rotates between calls)",
+        "file": "v2-0189-probe-domains-1140-bind-myra.json"
+    },
+    {
+        "case": "190",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domains/1140/bind/Origin",
+        "status": 200,
+        "finding": "ipTarget Origin: for this zone the same records as Myra (what differs is not visible here)",
+        "file": "v2-0190-probe-domains-1140-bind-origin.json"
+    },
+    {
+        "case": "191",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domains/1140/bind-raw/Myra",
+        "status": 200,
+        "finding": "v2 zone file, ipTarget Myra: text/plain",
+        "file": "v2-0191-probe-domains-1140-bind-raw-myra.json"
+    },
+    {
+        "case": "192",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domains/1140/bind-raw/Origin",
+        "status": 200,
+        "finding": "v2 zone file, ipTarget Origin",
+        "file": "v2-0192-probe-domains-1140-bind-raw-origin.json"
     }
 ]
