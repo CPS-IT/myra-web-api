@@ -6,14 +6,21 @@ namespace Myracloud\WebApi\Model;
 
 use Myracloud\WebApi\Exception\TransportException;
 use Myracloud\WebApi\Http\JsonObject;
+use SensitiveParameter;
+use SensitiveParameterValue;
 
 /**
- * An API token of the organisation (`TokenVO`, v2 only): metadata only, never the token itself.
+ * An API token of the user (`TokenVO`, v2 only): metadata — the token itself only once, in
+ * the answer to its creation ({@see value()}; hidden from dumps and traces, not in raw()).
  */
 final readonly class Token
 {
+    private ?SensitiveParameterValue $value;
+
     /**
-     * @param array<mixed> $raw the complete object as Myra sent it
+     * @param string|null $expiryDate ISO 8601; null = never expires
+     * @param array<mixed> $raw the complete object as Myra sent it, without the token
+     * @param string|null $value the token, only from create
      */
     public function __construct(
         private int $id,
@@ -22,7 +29,11 @@ final readonly class Token
         private ?string $expiryDate,
         private ?string $lastUsedDate,
         private array $raw = [],
-    ) {}
+        #[SensitiveParameter]
+        ?string $value = null,
+    ) {
+        $this->value = $value === null ? null : new SensitiveParameterValue($value);
+    }
 
     /**
      * @internal
@@ -37,7 +48,8 @@ final readonly class Token
             $json->bool('enabled'),
             $json->nullableString('expiryDate'),
             $json->nullableString('lastUsedDate'),
-            $json->toArray(),
+            array_diff_key($json->toArray(), ['token' => true]),
+            $json->nullableString('token'),
         );
     }
 
@@ -64,6 +76,57 @@ final readonly class Token
     public function lastUsedDate(): ?string
     {
         return $this->lastUsedDate;
+    }
+
+    /**
+     * The token for `BearerToken` — only in the answer to its creation, null otherwise.
+     */
+    public function value(): ?string
+    {
+        $value = $this->value?->getValue();
+
+        return is_string($value) ? $value : null;
+    }
+
+    /**
+     * Version for optimistic locking, exactly as Myra sent it.
+     */
+    public function modified(): ?string
+    {
+        $modified = $this->raw['modified'] ?? null;
+
+        return is_string($modified) ? $modified : null;
+    }
+
+    public function withName(string $name): self
+    {
+        return new self($this->id, $name, $this->enabled, $this->expiryDate, $this->lastUsedDate, $this->raw);
+    }
+
+    public function withEnabled(bool $enabled): self
+    {
+        return new self($this->id, $this->name, $enabled, $this->expiryDate, $this->lastUsedDate, $this->raw);
+    }
+
+    /**
+     * @param string|null $expiryDate ISO 8601, not in the past; null = never expires
+     */
+    public function withExpiryDate(?string $expiryDate): self
+    {
+        return new self($this->id, $this->name, $this->enabled, $expiryDate, $this->lastUsedDate, $this->raw);
+    }
+
+    /**
+     * The update body of the spec; `expiryDate` is always sent, null meaning "never expires"
+     * (the spec: without a value the token does not expire — sending null is not verified).
+     *
+     * @internal
+     *
+     * @return array<string, mixed>
+     */
+    public function toJson(): array
+    {
+        return ['id' => $this->id, 'modified' => $this->modified(), 'name' => $this->name, 'enabled' => $this->enabled, 'expiryDate' => $this->expiryDate];
     }
 
     /**

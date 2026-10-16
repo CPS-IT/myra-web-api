@@ -348,7 +348,7 @@ _TSIG secret never returned_
 
 ## Users, groups, permissions (v2)
 
-_reads done (170–185), anonymised in memory and reviewed by eye; users/groups/permissions writes from the spec (unverified, never probed); tokens, API keys, passwords next_
+_reads done (170–185), anonymised in memory and reviewed by eye; all writes from the spec (unverified, never probed)_
 
 _personal data: anonymise in memory_
 
@@ -358,16 +358,16 @@ _personal data: anonymise in memory_
 | v2 | `PUT /users/{id}` | write | – | ✓u |
 | v2 | `DELETE /users/{id}` | write | – | ✓u |
 | v2 | `GET /user/me` | read | R | ✓ |
-| v2 | `POST /user/reauthenticate` | write | – | – |
+| v2 | `POST /user/reauthenticate` | write | – | ✓u |
 | v2 | `GET /users` | read | R | ✓ |
 | v2 | `POST /users` | write | – | ✓u |
 | v2 | `GET /user/{id}/groups` | read | R | ✓ |
-| v2 | `POST /user/password/reset` | write | – | – |
-| v2 | `POST /user/password/new` | write | – | – |
-| v2 | `POST /user/{id}/password` | write | – | – |
+| v2 | `POST /user/password/reset` | write | – | ✓u |
+| v2 | `POST /user/password/new` | write | – | ✓u |
+| v2 | `POST /user/{id}/password` | write | – | ✓u |
 | v2 | `GET /user/{id}/api-keys` | read | R | ✓ |
-| v2 | `POST /user/{id}/api-keys` | write | – | – |
-| v2 | `DELETE /user/{userId}/api-keys/{id}` | write | – | – |
+| v2 | `POST /user/{id}/api-keys` | write | – | ✓u |
+| v2 | `DELETE /user/{userId}/api-keys/{id}` | write | – | ✓u |
 | v2 | `DELETE /user/{userId}/sessions/{id}` | write | – | ✓u |
 | v2 | `GET /user/{id}/activities` | read | R | ✓ |
 | v2 | `GET /user/groups` | read | R | ✓ |
@@ -387,9 +387,9 @@ _personal data: anonymise in memory_
 | v2 | `DELETE /user/group/{groupId}/permissions/{id}` | write | – | ✓u |
 | v2 | `DELETE /user/{userId}/permissions/{id}` | write | – | ✓u |
 | v2 | `GET /user/tokens` | read | R | ✓ |
-| v2 | `POST /user/tokens` | write | – | – |
-| v2 | `PUT /user/tokens/{id}` | write | – | – |
-| v2 | `DELETE /user/tokens/{id}` | write | – | – |
+| v2 | `POST /user/tokens` | write | – | ✓u |
+| v2 | `PUT /user/tokens/{id}` | write | – | ✓u |
+| v2 | `DELETE /user/tokens/{id}` | write | – | ✓u |
 
 ## Organisation (v2)
 

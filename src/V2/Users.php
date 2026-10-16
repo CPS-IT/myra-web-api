@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Myracloud\WebApi\V2;
 
 use Closure;
+use DateTimeInterface;
 use Myracloud\WebApi\Exception\InvalidArgumentException;
 use Myracloud\WebApi\Exception\MyraException;
 use Myracloud\WebApi\Exception\RequestRejectedException;
@@ -18,6 +19,7 @@ use Myracloud\WebApi\Model\Permission;
 use Myracloud\WebApi\Model\Persisted;
 use Myracloud\WebApi\Model\Token;
 use Myracloud\WebApi\Model\User;
+use SensitiveParameter;
 
 /**
  * Users, groups, permissions, API keys and tokens of the organisation (v2 only):
@@ -322,6 +324,106 @@ final readonly class Users
         $body = ['objectType' => $objectType, 'action' => $action] + ($objectId === null ? [] : ['objectInstance' => $objectId]);
 
         return $this->transport->send('POST', 'user/permissions/check', body: $body)->first('data')->bool('isAuthorized');
+    }
+
+    /**
+     * Creates an API token for the user the credentials belong to. Its value is only in this
+     * answer: {@see Token::value()} — store it, Myra never shows it again.
+     *
+     * @param DateTimeInterface|null $expires not in the past; null = never expires
+     *
+     * @throws MyraException
+     */
+    public function createToken(string $name, ?DateTimeInterface $expires = null, bool $enabled = true): Token
+    {
+        $body = ['name' => $name, 'enabled' => $enabled] + ($expires === null ? [] : ['expiryDate' => $expires->format(DATE_ATOM)]);
+
+        return Token::fromJson($this->transport->send('POST', 'user/tokens', body: $body)->first('data'));
+    }
+
+    /**
+     * Changes name, enabled or expiry date of a token read before. Disabling or expiring the
+     * token these credentials use locks this client out.
+     *
+     * @throws InvalidArgumentException if modified is missing
+     * @throws MyraException
+     */
+    public function updateToken(Token $token): Token
+    {
+        Persisted::versionOf($token->id(), $token->modified(), 'token');
+
+        return Token::fromJson($this->transport->send('PUT', 'user/tokens/' . $token->id(), body: $token->toJson())->first('data'));
+    }
+
+    /**
+     * Deleting the token these credentials use locks this client out.
+     *
+     * @throws MyraException
+     */
+    public function deleteToken(Token $token): void
+    {
+        $this->transport->send('DELETE', 'user/tokens/' . $token->id());
+    }
+
+    /**
+     * Creates an API key for a user. Its secret is only in this answer: {@see ApiKey::secret()}.
+     *
+     * @throws MyraException
+     */
+    public function createApiKey(int $userId, string $name): ApiKey
+    {
+        return ApiKey::fromJson($this->transport->send('POST', 'user/' . $userId . '/api-keys', body: ['name' => $name])->first('data'));
+    }
+
+    /**
+     * Deleting the key these credentials use locks this client out.
+     *
+     * @throws MyraException
+     */
+    public function deleteApiKey(int $userId, ApiKey $key): void
+    {
+        $this->transport->send('DELETE', 'user/' . $userId . '/api-keys/' . $key->id());
+    }
+
+    /**
+     * Confirms the own password (`ReauthenticationVO`), e.g. before sensitive changes.
+     *
+     * @throws MyraException
+     */
+    public function reauthenticate(#[SensitiveParameter] string $password): void
+    {
+        $this->transport->send('POST', 'user/reauthenticate', body: ['credentials' => $password]);
+    }
+
+    /**
+     * Sends the owner of the address an e-mail with a link to set a new password.
+     *
+     * @throws MyraException
+     */
+    public function requestPasswordReset(string $email): void
+    {
+        $this->transport->send('POST', 'user/password/reset', body: ['email' => $email]);
+    }
+
+    /**
+     * Sets a new password with the token from the reset e-mail (valid one hour; with
+     * two-factor authentication its step must be done first — spec).
+     *
+     * @param string $resetToken the part of the e-mail's link after "/new-password/"
+     *
+     * @throws MyraException an unknown, used or expired token answers 403 without body (spec)
+     */
+    public function setNewPassword(#[SensitiveParameter] string $resetToken, #[SensitiveParameter] string $password): void
+    {
+        $this->transport->send('POST', 'user/password/new', body: ['newPassword' => $password, 'confirmPassword' => $password, 'token' => $resetToken]);
+    }
+
+    /**
+     * @throws MyraException
+     */
+    public function changePassword(int $userId, #[SensitiveParameter] string $oldPassword, #[SensitiveParameter] string $newPassword): void
+    {
+        $this->transport->send('POST', 'user/' . $userId . '/password', body: ['oldPassword' => $oldPassword, 'newPassword' => $newPassword, 'confirmPassword' => $newPassword]);
     }
 
     /**
