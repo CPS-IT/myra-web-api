@@ -47,11 +47,26 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 22 | v2 | `GET /domain/1000/redirects/example.com` | 200 | same DnsRedirectVO as v1; v2 lists per vHostName |
 | 23 | v2 | `GET /domain/1000/redirects/example.com/90392` | 200 | get by id: data is a one-element list, no paging fields |
 | 24 | v2 | `GET /domain/1140/redirects/example.org` | 403 | vHostName that is no vhost: 403 'The entity does not exist.' |
+| 25 | v1 | `PUT /en/rapi/redirects/map.example.org` | 200 | v1 create: PUT, answer in targetObject; enabled: false is honoured although the manual does not list it |
+| 26 | v1 | `POST /en/rapi/redirects/map.example.org` | 200 | v1 update: POST with id + modified, answer with the new modified |
+| 27 | v1 | `POST /en/rapi/redirects/map.example.org` | 200 | optimistic lock: a stale modified is rejected with HTTP 200 (!) and error: true |
+| 28 | v1 | `GET /en/rapi/redirects/map.example.org/1` | 200 | list after the update |
+| 29 | v1 | `DELETE /en/rapi/redirects/map.example.org` | 200 | v1 delete: body {id, modified}; JSON answer although Content-Type is text/html |
+| 30 | v1 | `GET /en/rapi/redirects/map.example.org/1` | 200 | list after the delete: the probe is gone |
+| 31 | v2 | `POST /domain/1140/redirects/map.example.org` | 201 | v2 create: POST, HTTP 201, answer in data |
+| 32 | v2 | `GET /domain/1140/redirects/map.example.org/90003` | 200 | get by id after the create |
+| 33 | v2 | `PUT /domain/1140/redirects/map.example.org/90003` | 200 | v2 update: PUT …/{id} with id + modified |
+| 34 | v2 | `PUT /domain/1140/redirects/map.example.org/90003` | 400 | optimistic lock: a stale modified is rejected with HTTP 400 and error: true |
+| 35 | v2 | `GET /domain/1140/redirects/map.example.org` | 200 | list after the update |
+| 36 | v2 | `DELETE /domain/1140/redirects/map.example.org/90003` | 204 | v2 delete: HTTP 204, empty body, no Content-Type |
+| 37 | v2 | `GET /domain/1140/redirects/map.example.org` | 200 | list after the delete: the probe is gone |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.
 
-Cases 19+ come from `tests/Smoke/capture.php` (anonymised in memory, see its docblock).
+Cases 19–24 come from `tests/Smoke/capture.php`, cases 25–37 from `tests/Smoke/write.php` (a disabled probe
+redirect of `/__probe__/redirect` on an unused domain, created, changed and deleted through this
+package) — both anonymised in memory, see their docblocks.
 Cases 17/18 and the HMAC-on-v2 confirmation come from `tests/Smoke/run.php` (all four
 version × auth combinations through this package, 12/12 passed): v2 signed with HMAC
 works, including a query string (`/domains?page=2`); Bearer works on v1.

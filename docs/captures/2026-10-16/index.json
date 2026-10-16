@@ -258,5 +258,135 @@
         "status": 403,
         "finding": "vHostName that is no vhost: 403 'The entity does not exist.'",
         "file": "v2-0024-redirects-unknown-vhost.json"
+    },
+    {
+        "case": "25",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "PUT",
+        "path": "/en/rapi/redirects/map.example.org",
+        "status": 200,
+        "finding": "v1 create: PUT, answer in targetObject; enabled: false is honoured although the manual does not list it",
+        "file": "v1-0025-redirect-create.json"
+    },
+    {
+        "case": "26",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/redirects/map.example.org",
+        "status": 200,
+        "finding": "v1 update: POST with id + modified, answer with the new modified",
+        "file": "v1-0026-redirect-update.json"
+    },
+    {
+        "case": "27",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/redirects/map.example.org",
+        "status": 200,
+        "finding": "optimistic lock: a stale modified is rejected with HTTP 200 (!) and error: true",
+        "file": "v1-0027-redirect-update-stale.json"
+    },
+    {
+        "case": "28",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/redirects/map.example.org/1",
+        "status": 200,
+        "finding": "list after the update",
+        "file": "v1-0028-redirect-list.json"
+    },
+    {
+        "case": "29",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "DELETE",
+        "path": "/en/rapi/redirects/map.example.org",
+        "status": 200,
+        "finding": "v1 delete: body {id, modified}; JSON answer although Content-Type is text/html",
+        "file": "v1-0029-redirect-delete.json"
+    },
+    {
+        "case": "30",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/redirects/map.example.org/1",
+        "status": 200,
+        "finding": "list after the delete: the probe is gone",
+        "file": "v1-0030-redirect-verify.json"
+    },
+    {
+        "case": "31",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/domain/1140/redirects/map.example.org",
+        "status": 201,
+        "finding": "v2 create: POST, HTTP 201, answer in data",
+        "file": "v2-0031-redirect-create.json"
+    },
+    {
+        "case": "32",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/redirects/map.example.org/90003",
+        "status": 200,
+        "finding": "get by id after the create",
+        "file": "v2-0032-redirect-get.json"
+    },
+    {
+        "case": "33",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1140/redirects/map.example.org/90003",
+        "status": 200,
+        "finding": "v2 update: PUT \u2026/{id} with id + modified",
+        "file": "v2-0033-redirect-update.json"
+    },
+    {
+        "case": "34",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1140/redirects/map.example.org/90003",
+        "status": 400,
+        "finding": "optimistic lock: a stale modified is rejected with HTTP 400 and error: true",
+        "file": "v2-0034-redirect-update-stale.json"
+    },
+    {
+        "case": "35",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/redirects/map.example.org",
+        "status": 200,
+        "finding": "list after the update",
+        "file": "v2-0035-redirect-list.json"
+    },
+    {
+        "case": "36",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "DELETE",
+        "path": "/domain/1140/redirects/map.example.org/90003",
+        "status": 204,
+        "finding": "v2 delete: HTTP 204, empty body, no Content-Type",
+        "file": "v2-0036-redirect-delete.json"
+    },
+    {
+        "case": "37",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1140/redirects/map.example.org",
+        "status": 200,
+        "finding": "list after the delete: the probe is gone",
+        "file": "v2-0037-redirect-verify.json"
     }
 ]

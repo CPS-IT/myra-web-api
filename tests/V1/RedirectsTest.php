@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Myracloud\WebApi\Tests\V1;
 
-use GuzzleHttp\Psr7\Response;
 use Myracloud\WebApi\Auth\BearerToken;
 use Myracloud\WebApi\Exception\InvalidArgumentException;
+use Myracloud\WebApi\Exception\RequestRejectedException;
 use Myracloud\WebApi\Model\Redirect;
 use Myracloud\WebApi\Tests\Support\FakeHttpClient;
 use Myracloud\WebApi\Tests\Support\Fixture;
@@ -28,11 +28,10 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(\Myracloud\WebApi\Model\Redirect::class)]
 #[UsesClass(\Myracloud\WebApi\Model\Persisted::class)]
 #[UsesClass(\Myracloud\WebApi\Model\DomainName::class)]
+#[UsesClass(\Myracloud\WebApi\Model\Violation::class)]
+#[UsesClass(\Myracloud\WebApi\Exception\RequestRejectedException::class)]
 final class RedirectsTest extends TestCase
 {
-    /** v1 answer of a write, after the manual (§11.2.2) — not captured yet. */
-    private const WRITTEN = '{"error":false,"violationList":[],"targetObject":[{"objectType":"DnsRedirectVO","id":7,"modified":"2026-10-16T12:00:00+0200","created":"2026-10-16T12:00:00+0200","subDomainName":"www.example.com","source":"/old","destination":"https://www.example.com/new","type":"permanent","matchingType":"exact","sort":0,"enabled":true}]}';
-
     private FakeHttpClient $http;
     private V1\Redirects $redirects;
 
@@ -62,37 +61,54 @@ final class RedirectsTest extends TestCase
         self::assertSame(['GET https://api.myracloud.com/en/rapi/redirects/example.org/2'], $this->sent());
     }
 
-    public function testCreatesWithPut(): void
+    /**
+     * The captured probe run (captures 25–37): create, update, stale update, delete.
+     */
+    public function testCreatesAProbeAsCaptured(): void
     {
-        $this->http->queue(new Response(200, [], self::WRITTEN));
+        $this->http->queue(Fixture::response('v1/redirects/create'));
 
-        $created = $this->redirects->create(new Redirect('www.example.com', '/old', 'https://www.example.com/new'));
+        $created = $this->redirects->create(self::probe());
 
-        self::assertSame(['PUT https://api.myracloud.com/en/rapi/redirects/www.example.com'], $this->sent());
-        self::assertSame('{"subDomainName":"www.example.com","source":"/old","destination":"https://www.example.com/new","type":"permanent","matchingType":"exact","sort":0,"enabled":true,"expertMode":false}', (string) $this->http->lastRequest()->getBody());
-        self::assertSame([7, '2026-10-16T12:00:00+0200'], [$created->id(), $created->modified()]);
+        self::assertSame('PUT https://api.myracloud.com/en/rapi/redirects/map.example.org', $this->sent()[0]);
+        self::assertSame(Fixture::requestBody('v1/redirects/create'), (string) $this->http->lastRequest()->getBody());
+        self::assertSame([90001, false], [$created->id(), $created->isEnabled()]);
+        self::assertNotNull($created->modified());
     }
 
-    public function testUpdatesWithPostAndTheVersion(): void
+    public function testUpdatesWithTheVersionAsCaptured(): void
     {
-        $this->http->queue(new Response(200, [], self::WRITTEN), new Response(200, [], self::WRITTEN));
-        $created = $this->redirects->create(new Redirect('www.example.com', '/old', 'https://www.example.com/new'));
+        $this->http->queue(Fixture::response('v1/redirects/create'), Fixture::response('v1/redirects/update'));
+        $created = $this->redirects->create(self::probe());
 
-        $this->redirects->update($created->withDestination('https://www.example.com/newer'));
+        $updated = $this->redirects->update($created->withDestination('https://map.example.org/__probe__/target2'));
 
-        self::assertSame('POST https://api.myracloud.com/en/rapi/redirects/www.example.com', $this->sent()[1]);
-        self::assertSame('{"subDomainName":"www.example.com","source":"/old","destination":"https://www.example.com/newer","type":"permanent","matchingType":"exact","sort":0,"enabled":true,"expertMode":false,"id":7,"modified":"2026-10-16T12:00:00+0200"}', (string) $this->http->lastRequest()->getBody());
+        self::assertSame('POST https://api.myracloud.com/en/rapi/redirects/map.example.org', $this->sent()[1]);
+        self::assertSame(Fixture::requestBody('v1/redirects/update'), (string) $this->http->lastRequest()->getBody());
+        self::assertNotSame($created->modified(), $updated->modified());
     }
 
-    public function testDeletesWithIdAndVersionInTheBody(): void
+    public function testAStaleVersionIsRejected(): void
     {
-        $this->http->queue(new Response(200, [], self::WRITTEN), new Response(200, [], '{"error":false,"violationList":[],"targetObject":[]}'));
-        $created = $this->redirects->create(new Redirect('www.example.com', '/old', 'https://www.example.com/new'));
+        $this->http->queue(Fixture::response('v1/redirects/create'), Fixture::response('v1/redirects/update-stale'));
+        $created = $this->redirects->create(self::probe());
 
-        $this->redirects->delete($created);
+        $this->expectException(RequestRejectedException::class);
+        $this->expectExceptionMessage('The record has been edited in the meantime.');
 
-        self::assertSame('DELETE https://api.myracloud.com/en/rapi/redirects/www.example.com', $this->sent()[1]);
-        self::assertSame('{"id":7,"modified":"2026-10-16T12:00:00+0200"}', (string) $this->http->lastRequest()->getBody());
+        $this->redirects->update($created->withDestination('https://map.example.org/__probe__/stale'));
+    }
+
+    public function testDeletesAsCaptured(): void
+    {
+        $this->http->queue(Fixture::response('v1/redirects/create'), Fixture::response('v1/redirects/update'), Fixture::response('v1/redirects/delete'));
+        $created = $this->redirects->create(self::probe());
+        $updated = $this->redirects->update($created->withDestination('https://map.example.org/__probe__/target2'));
+
+        $this->redirects->delete($updated);
+
+        self::assertSame('DELETE https://api.myracloud.com/en/rapi/redirects/map.example.org', $this->sent()[2]);
+        self::assertSame(Fixture::requestBody('v1/redirects/delete'), (string) $this->http->lastRequest()->getBody());
     }
 
     public function testGuardsWritesBeforeSending(): void
@@ -107,6 +123,11 @@ final class RedirectsTest extends TestCase
             }
         }
         self::assertSame([], $this->http->requests());
+    }
+
+    private static function probe(): Redirect
+    {
+        return new Redirect('map.example.org', '/__probe__/redirect', 'https://map.example.org/__probe__/target', Redirect::TYPE_REDIRECT, Redirect::MATCH_EXACT, enabled: false);
     }
 
     /**

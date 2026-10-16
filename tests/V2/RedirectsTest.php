@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Myracloud\WebApi\Tests\V2;
 
-use GuzzleHttp\Psr7\Response;
 use Myracloud\WebApi\Auth\BearerToken;
 use Myracloud\WebApi\Exception\DomainNotFoundException;
 use Myracloud\WebApi\Exception\InvalidArgumentException;
@@ -36,9 +35,6 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(\Myracloud\WebApi\Exception\RequestRejectedException::class)]
 final class RedirectsTest extends TestCase
 {
-    /** v2 answer of a write, after the spec — not captured yet. */
-    private const WRITTEN = '{"error":false,"violationList":[],"warningList":[],"data":[{"objectType":"DnsRedirectVO","id":7,"modified":"2026-10-16T12:00:00+0200","created":"2026-10-16T12:00:00+0200","subDomainName":"www.example.com","source":"/old","destination":"https://www.example.com/new","type":"permanent","matchingType":"exact","sort":0,"enabled":true}]}';
-
     private FakeHttpClient $http;
     private V2\Client $client;
 
@@ -112,36 +108,53 @@ final class RedirectsTest extends TestCase
         $this->client->redirects()->list('example.org');
     }
 
-    public function testCreatesWithPost(): void
+    /**
+     * The captured probe run (captures 25–37): create, update, stale update, delete.
+     */
+    public function testCreatesAProbeAsCaptured(): void
     {
-        $this->http->queue(new Response(200, [], self::WRITTEN));
+        $this->http->queue(Fixture::response('v2/redirects/create'));
 
-        $created = $this->client->redirects()->create(new Redirect('www.example.com', '/old', 'https://www.example.com/new'));
+        $created = $this->client->redirects()->create(self::probe());
 
-        self::assertSame('POST https://apiv2.myracloud.com/domain/1000/redirects/www.example.com', $this->sent()[1]);
-        self::assertSame('{"subDomainName":"www.example.com","source":"/old","destination":"https://www.example.com/new","type":"permanent","matchingType":"exact","sort":0,"enabled":true,"expertMode":false}', (string) $this->http->lastRequest()->getBody());
-        self::assertSame(7, $created->id());
+        self::assertSame('POST https://apiv2.myracloud.com/domain/1140/redirects/map.example.org', $this->sent()[1]);
+        self::assertSame(Fixture::requestBody('v2/redirects/create'), (string) $this->http->lastRequest()->getBody());
+        self::assertSame([90003, false], [$created->id(), $created->isEnabled()]);
+        self::assertNotNull($created->modified());
     }
 
-    public function testUpdatesWithPutOnTheId(): void
+    public function testUpdatesWithTheVersionAsCaptured(): void
     {
-        $this->http->queue(new Response(200, [], self::WRITTEN), new Response(200, [], self::WRITTEN));
-        $created = $this->client->redirects()->create(new Redirect('www.example.com', '/old', 'https://www.example.com/new'));
+        $this->http->queue(Fixture::response('v2/redirects/create'), Fixture::response('v2/redirects/update'));
+        $created = $this->client->redirects()->create(self::probe());
 
-        $this->client->redirects()->update($created->withEnabled(false));
+        $updated = $this->client->redirects()->update($created->withDestination('https://map.example.org/__probe__/target2'));
 
-        self::assertSame('PUT https://apiv2.myracloud.com/domain/1000/redirects/www.example.com/7', $this->sent()[2]);
-        self::assertStringContainsString('"enabled":false,"expertMode":false,"id":7,"modified":"2026-10-16T12:00:00+0200"', (string) $this->http->lastRequest()->getBody());
+        self::assertSame('PUT https://apiv2.myracloud.com/domain/1140/redirects/map.example.org/90003', $this->sent()[2]);
+        self::assertSame(Fixture::requestBody('v2/redirects/update'), (string) $this->http->lastRequest()->getBody());
+        self::assertNotSame($created->modified(), $updated->modified());
     }
 
-    public function testDeletesOnTheIdAndAcceptsAnEmptyAnswer(): void
+    public function testAStaleVersionIsRejected(): void
     {
-        $this->http->queue(new Response(200, [], self::WRITTEN), new Response(200));
-        $created = $this->client->redirects()->create(new Redirect('www.example.com', '/old', 'https://www.example.com/new'));
+        $this->http->queue(Fixture::response('v2/redirects/create'), Fixture::response('v2/redirects/update-stale'));
+        $created = $this->client->redirects()->create(self::probe());
 
-        $this->client->redirects()->delete($created);
+        $this->expectException(RequestRejectedException::class);
+        $this->expectExceptionMessage('The record has been edited in the meantime.');
 
-        self::assertSame('DELETE https://apiv2.myracloud.com/domain/1000/redirects/www.example.com/7', $this->sent()[2]);
+        $this->client->redirects()->update($created->withDestination('https://map.example.org/__probe__/stale'));
+    }
+
+    public function testDeletesAsCaptured(): void
+    {
+        $this->http->queue(Fixture::response('v2/redirects/create'), Fixture::response('v2/redirects/update'), Fixture::response('v2/redirects/delete'));
+        $created = $this->client->redirects()->create(self::probe());
+        $updated = $this->client->redirects()->update($created->withDestination('https://map.example.org/__probe__/target2'));
+
+        $this->client->redirects()->delete($updated);
+
+        self::assertSame('DELETE https://apiv2.myracloud.com/domain/1140/redirects/map.example.org/90003', $this->sent()[3]);
         self::assertSame('', (string) $this->http->lastRequest()->getBody());
     }
 
@@ -157,6 +170,11 @@ final class RedirectsTest extends TestCase
             }
         }
         self::assertSame([], $this->http->requests());
+    }
+
+    private static function probe(): Redirect
+    {
+        return new Redirect('map.example.org', '/__probe__/redirect', 'https://map.example.org/__probe__/target', Redirect::TYPE_REDIRECT, Redirect::MATCH_EXACT, enabled: false);
     }
 
     /**

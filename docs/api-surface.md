@@ -4,7 +4,7 @@ Every operation of both versions, by area, with its status. Source: the v1 manua
 (`docs/v1`, chapters 5–19) and the v2 spec (`docs/v2/openapi.json`, 175 operations).
 Generated once, maintained by hand. Status per operation:
 
-- **capture**: `–` none, `R` read captured with data, `R∅` read captured but empty in this
+- **capture**: `–` none, `R` read captured with data, `W` write captured (`tests/Smoke/write.php` probe), `R∅` read captured but empty in this
   account (no object shape yet — needs one entry created), `R✗` captured but withheld by the
   leak check (anonymisation open), `403`/`400` not accessible for this account, `W` write
   captured (Postman, by the user)
@@ -65,19 +65,19 @@ _done_
 
 ## Redirects
 
-_done: sets the pattern for per-vhost areas and writes (docs/2.0-design.md, "Area pattern"); writes unverified until captured_
+_done: sets the pattern for per-vhost areas and writes (docs/2.0-design.md, "Area pattern"); writes captured with a probe (25–37)_
 
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
 | v1 | `GET /{lang}/rapi/redirects/{domain}/{page}` | read | R | ✓ |
-| v1 | `PUT /{lang}/rapi/redirects/{domain}` | write | – | ✓u |
-| v1 | `POST /{lang}/rapi/redirects/{domain}` | write | – | ✓u |
-| v1 | `DELETE /{lang}/rapi/redirects/{domain}` | write | – | ✓u |
+| v1 | `PUT /{lang}/rapi/redirects/{domain}` | write | W | ✓ |
+| v1 | `POST /{lang}/rapi/redirects/{domain}` | write | W | ✓ |
+| v1 | `DELETE /{lang}/rapi/redirects/{domain}` | write | W | ✓ |
 | v2 | `GET /domain/{domainId}/redirects/{name}/{id}` | read | R | ✓ |
-| v2 | `PUT /domain/{domainId}/redirects/{name}/{id}` | write | – | ✓u |
-| v2 | `DELETE /domain/{domainId}/redirects/{name}/{id}` | write | – | ✓u |
+| v2 | `PUT /domain/{domainId}/redirects/{name}/{id}` | write | W | ✓ |
+| v2 | `DELETE /domain/{domainId}/redirects/{name}/{id}` | write | W | ✓ |
 | v2 | `GET /domain/{domainId}/redirects/{vHostName}` | read | R | ✓ |
-| v2 | `POST /domain/{domainId}/redirects/{name}` | write | – | ✓u |
+| v2 | `POST /domain/{domainId}/redirects/{name}` | write | W | ✓ |
 
 ## IP filter
 

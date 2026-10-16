@@ -19,9 +19,9 @@ declare(strict_types=1);
  * - v1 `recursive` not a boolean → the v2 wrong-type answer;
  * - paging (MYRA_EMULATOR_PAGE_SIZE cuts the captured lists), the echo of a cache clear
  *   (built like the captured ones) and the 404 "Not emulated" envelope;
- * - every redirect write (create, update, delete: not captured yet — echoed like the
- *   manual/spec describe; stateless, nothing is stored) and v2 redirects of www.example.com
- *   (the v1 capture's objects in a v2 envelope).
+ * - redirect writes are echoed in the captured shapes (captures 25–37) but stateless:
+ *   nothing is stored, a stale `modified` is not detected; v2 redirects of www.example.com
+ *   are the v1 capture's objects in a v2 envelope.
  *
  * Authentication is checked independently of the package's own code: HMAC recomputed
  * after the v2 spec (docs/v2/openapi.json, info.description §2.1.2), or a Bearer token.
@@ -244,7 +244,8 @@ final class Emulator
             $this->method === 'GET' && $page !== null => Answer::page(self::REDIRECTS[$vhost] ?? 'v1/redirects/list-empty', 'list', $page),
             $this->method === 'PUT' => $this->redirectWritten('targetObject', null),
             $this->method === 'POST' => $this->redirectWritten('targetObject', null),
-            $this->method === 'DELETE' => Answer::success('targetObject', []),
+            // captured: JSON, but declared as text/html
+            $this->method === 'DELETE' => new Answer(200, 'text/html; charset=UTF-8', ['error' => false, 'targetObject' => [json_decode($this->body, true)], 'violationList' => []]),
             default => self::notEmulated($this->method, '/redirects/' . $vhost),
         };
     }
@@ -261,17 +262,17 @@ final class Emulator
                 ? Answer::page('v2/redirects/list-apex', 'data', $page)
                 : Answer::page(self::REDIRECTS[$vhost], 'list', $page)->rename('list', 'data'),
             $this->method === 'GET' => $id === 90392 ? Answer::fixture('v2/redirects/get') : Answer::fixture('v2/redirects/unknown-vhost'),
-            $this->method === 'POST' && $id === null => $this->redirectWritten('data', null),
+            $this->method === 'POST' && $id === null => $this->redirectWritten('data', null, 201),
             $this->method === 'PUT' && $id !== null => $this->redirectWritten('data', $id),
-            $this->method === 'DELETE' && $id !== null => new Answer(200, null, ''),
+            $this->method === 'DELETE' && $id !== null => new Answer(204, null, ''),
             default => self::notEmulated($this->method, '/domain/' . $domainId . '/redirects/' . $vhost),
         };
     }
 
     /**
-     * Echo of a redirect write: the sent object with id and a new modified (assumed answer).
+     * Echo of a redirect write: the sent object with id and a new modified, in the captured shape.
      */
-    private function redirectWritten(string $key, ?int $id): Answer
+    private function redirectWritten(string $key, ?int $id, int $status = 200): Answer
     {
         $redirect = json_decode($this->body, true);
         if (!is_array($redirect)) {
@@ -282,7 +283,9 @@ final class Emulator
         $redirect['created'] ??= '2026-10-16T12:00:00+0200';
         $redirect['modified'] = '2026-10-16T12:00:0' . (is_string($redirect['modified'] ?? null) ? '1' : '0') . '+0200';
 
-        return Answer::success($key, [$redirect]);
+        $answer = Answer::success($key, [$redirect]);
+
+        return new Answer($status, $answer->contentType, $answer->body);
     }
 
     /**
