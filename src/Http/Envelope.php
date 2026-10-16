@@ -42,11 +42,12 @@ final class Envelope
     {
         $target = $request->getMethod() . ' ' . $request->getUri();
         $status = $response->getStatusCode();
+        $content = (string) $response->getBody();
         if ($status >= 500) {
-            throw new TransportException(sprintf('%s: server error (HTTP %d).', $target, $status));
+            // Myra's message (e.g. "An internal error occurred. Reference: …") helps its support
+            throw new TransportException(sprintf('%s: server error (HTTP %d).%s', $target, $status, self::reasons(self::decodeObject($content))));
         }
 
-        $content = (string) $response->getBody();
         if ($content === '' && self::isSuccess($status)) {
             return new JsonObject([]); // e.g. v2 deletes: "only a 200 HTTP code"
         }
@@ -72,6 +73,24 @@ final class Envelope
         }
 
         throw new TransportException(sprintf('%s: unexpected response (HTTP %d).', $target, $status));
+    }
+
+    /**
+     * " Myra says: …" from the violations of an envelope, or nothing.
+     *
+     * @param array<mixed>|null $body
+     */
+    private static function reasons(?array $body): string
+    {
+        $violations = is_array($body) && is_array($body['violationList'] ?? null) ? $body['violationList'] : [];
+        $messages = [];
+        foreach ($violations as $violation) {
+            if (is_array($violation) && is_string($violation['message'] ?? null)) {
+                $messages[] = $violation['message'];
+            }
+        }
+
+        return $messages === [] ? '' : ' Myra says: ' . implode('; ', $messages);
     }
 
     private static function isSuccess(int $status): bool

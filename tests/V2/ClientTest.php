@@ -34,6 +34,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(\Myracloud\WebApi\Model\Page::class)]
 #[UsesClass(\Myracloud\WebApi\Model\Domain::class)]
 #[UsesClass(\Myracloud\WebApi\Model\DnsRecord::class)]
+#[UsesClass(\Myracloud\WebApi\Model\UpstreamOptions::class)]
 #[UsesClass(\Myracloud\WebApi\Model\CacheClear::class)]
 #[UsesClass(\Myracloud\WebApi\Model\CacheClearBody::class)]
 #[UsesClass(\Myracloud\WebApi\Model\DomainName::class)]
@@ -72,7 +73,7 @@ final class ClientTest extends TestCase
 
         $records = $this->client()->dnsRecords()->list('example.org');
 
-        self::assertSame([1, 2, 3], array_map(static fn($r): int => $r->id(), $records));
+        self::assertSame([1, 2, 3], array_map(static fn($r): ?int => $r->id(), $records));
         self::assertSame([
             'GET https://apiv2.myracloud.com/domains',
             'GET https://apiv2.myracloud.com/domain/1140/dns-records',

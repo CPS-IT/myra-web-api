@@ -23,6 +23,8 @@ declare(strict_types=1);
  *   stateless: nothing is stored, a stale `modified` is not detected; v2 lists of
  *   www.example.com are the v1 capture's objects in a v2 envelope; the IP filter export is
  *   built from the captured list;
+ * - DNS record writes are echoed in the captured shapes (stateless); the dedicated v2 load
+ *   balancing PUT answers the captured HTTP 500;
  * - subdomain settings: v2 settings of www.example.com are the v1 capture, `?flat` answers
  *   the apex (v1) or the probed vhost (v2) capture whatever the vhost; POST is echoed.
  *
@@ -206,8 +208,14 @@ final class Emulator
                 => Answer::page('v1/domains/list', 'list', (int) $m[1]),
             $this->method === 'GET' && preg_match('#^/dnsRecords/([^/]+)/(\d+)$#', $route, $m) === 1
                 => rawurldecode($m[1]) === 'example.com'
-                    ? Answer::page('v1/dns-records/list', 'list', (int) $m[2])
+                    ? Answer::page(array_key_exists('loadbalancer', $this->query()) ? 'v1/dns-records/load-balancing' : 'v1/dns-records/list', 'list', (int) $m[2])
                     : Answer::fixture('v1/errors/unknown-domain'),
+            preg_match('#^/dnsRecords/([^/]+)$#', $route, $m) === 1 && isset(self::DOMAINS[rawurldecode($m[1])])
+                => match ($this->method) {
+                    'PUT', 'POST' => $this->written('DnsRecordVO', 'targetObject', null),
+                    'DELETE' => new Answer(200, 'text/html; charset=UTF-8', ['error' => false, 'targetObject' => [json_decode($this->body, true)], 'violationList' => []]),
+                    default => self::notEmulated($this->method, $route),
+                },
             preg_match('#^/subdomainSetting/([^/]+)$#', $route, $m) === 1
                 => $this->settings('v1', rawurldecode($m[1])),
             preg_match('#^/(redirects|ipfilter|cacheSettings)/([^/]+)(/(\d+))?$#', $route, $m) === 1
@@ -235,6 +243,8 @@ final class Emulator
             // areas with the vhost before the area name
             preg_match('#^/domain/(\d+)/([^/]+)/(cache-settings)(/(\d+))?$#', $route, $m) === 1
                 => $this->v2Vhost(self::V2_AREAS[$m[3]], (int) $m[1], rawurldecode($m[2]), $m[5] ?? null, $page),
+            preg_match('#^/domain/(\d+)/(load-balancing|vhost/\d+/dns-records|dns-records/(\d+)(/load-balancing)?)$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
+                => $this->v2DnsRecord((int) $m[1], $m[2], isset($m[3]) && $m[3] !== '' ? (int) $m[3] : null, $page),
             preg_match('#^/domain/([^/]+)/(dns-records|cache-clear)$#', $route, $m) === 1
                 => $this->v2Domain($m[1], $m[2], $page),
             default => self::notEmulated($this->method, $route),
@@ -255,8 +265,26 @@ final class Emulator
             $this->method === 'GET' && $area === 'dns-records' => $name === 'example.com'
                 ? Answer::page('v2/dns-records/list', 'data', $page)
                 : Answer::page('v2/domains/page-2', 'data', 1),
+            $this->method === 'POST' && $area === 'dns-records' => $this->written('DnsRecordVO', 'data', null, 201),
             $this->method === 'PUT' && $area === 'cache-clear' => $this->cacheClear('v2', $name, 'data'),
             default => self::notEmulated($this->method, '/domain/' . $id . '/' . $area),
+        };
+    }
+
+    /**
+     * One record, load balancing, a vhost's records. The dedicated load balancing PUT answers
+     * HTTP 500 — as captured for the (inactive) probe record.
+     */
+    private function v2DnsRecord(int $domainId, string $tail, ?int $id, int $page): Answer
+    {
+        return match (true) {
+            $this->method === 'GET' && $tail === 'load-balancing' => $domainId === 1000 ? Answer::page('v2/dns-records/load-balancing', 'data', $page) : Answer::page('v2/domains/page-2', 'data', 1),
+            $this->method === 'GET' && str_starts_with($tail, 'vhost/') => $tail === 'vhost/1007/dns-records' ? Answer::fixture('v2/dns-records/for-vhost') : Answer::page('v2/domains/page-2', 'data', 1),
+            $this->method === 'GET' && $id !== null => $id === 1021 ? Answer::fixture('v2/dns-records/get') : Answer::fixture('v2/errors/unknown-domain-id'),
+            $this->method === 'PUT' && str_ends_with($tail, '/load-balancing') => Answer::fixture('v2/dns-records/load-balancing-endpoint-500'),
+            $this->method === 'PUT' && $id !== null => $this->written('DnsRecordVO', 'data', $id),
+            $this->method === 'DELETE' && $id !== null => new Answer(204, null, ''),
+            default => self::notEmulated($this->method, "/domain/$domainId/$tail"),
         };
     }
 

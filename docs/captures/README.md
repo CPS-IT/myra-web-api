@@ -103,6 +103,23 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 78 | v2 | `GET /domain/1140/map.example.org/settings` | 200 | v2: same structure as v1 |
 | 79 | v2 | `GET /domain/1140/map.example.org/settings?flat` | 200 | ?flat in v2 too (not in the spec); v2 sends numbers as numbers |
 | 80 | v2 | `POST /domain/1140/map.example.org/settings` | 200 | v2 update: answer in data (the GET answers in targetObject) |
+| 81 | v1 | `GET /en/rapi/dnsRecords/example.com/1?loadbalancer=true&recordTypes=A,AAAA,CNAME` | 200 | load balancing in v1: the DNS list with ?loadbalancer=true&recordTypes=A,AAAA,CNAME — records with upstreamOptions |
+| 82 | v2 | `GET /domain/1000/load-balancing` | 200 | load balancing in v2: /domain/{id}/load-balancing, the same records |
+| 83 | v2 | `GET /domain/1000/dns-records/1021` | 200 | get by id: one-element data list |
+| 84 | v2 | `GET /domain/1000/vhost/1007/dns-records` | 200 | the records of one vhost, by its v2 vhostId |
+| 85 | v1 | `PUT /en/rapi/dnsRecords/example.org` | 200 | v1 create (probe: inactive TXT __probe__.<domain>); a TXT record answers a partial UpstreamOptionsVO (backup, down only) |
+| 86 | v1 | `POST /en/rapi/dnsRecords/example.org` | 200 | v1 update: the complete record as read, changes on top |
+| 87 | v1 | `POST /en/rapi/dnsRecords/example.org` | 200 | stale modified: HTTP 200 + error: true |
+| 88 | v1 | `PUT /en/rapi/dnsRecords/example.org` | 200 | probe A record (192.0.2.1, inactive) with default upstreamOptions (own id + modified) |
+| 89 | v1 | `POST /en/rapi/dnsRecords/example.org` | 200 | load balancing changed through the normal update (weight 1 → 2) |
+| 90 | v1 | `DELETE /en/rapi/dnsRecords/example.org` | 200 | v1 delete: body {id, modified} |
+| 91 | v2 | `POST /domain/1140/dns-records` | 201 | v2 create: HTTP 201 |
+| 92 | v2 | `PUT /domain/1140/dns-records/90009` | 200 | v2 update: PUT …/dns-records/{id} |
+| 93 | v2 | `PUT /domain/1140/dns-records/90009` | 400 | stale modified: HTTP 400 |
+| 94 | v2 | `POST /domain/1140/dns-records` | 201 | probe A record in v2 |
+| 95 | v2 | `PUT /domain/1140/dns-records/90011` | 200 | load balancing changed through the normal update in v2 too (weight 1 → 2) |
+| 96 | v2 | `PUT /domain/1140/dns-records/90011/load-balancing` | 500 | PUT …/{id}/load-balancing: HTTP 500 'An internal error occurred' for the inactive probe record (also with the upstream object's own id) — unverified |
+| 97 | v2 | `DELETE /domain/1140/dns-records/90009` | 204 | v2 delete: HTTP 204 |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.

@@ -18,6 +18,7 @@ use Myracloud\WebApi\Model\DnsRecord;
 use Myracloud\WebApi\Model\Domain;
 use Myracloud\WebApi\Model\IpFilter;
 use Myracloud\WebApi\Model\Redirect;
+use Myracloud\WebApi\Model\UpstreamOptions;
 use Myracloud\WebApi\V1;
 use Myracloud\WebApi\V2;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -215,6 +216,23 @@ final class IntegrationTest extends TestCase
         self::assertSame($www->own(), $settings->update('www.example.com', $www->own())->own());
         $writes = array_values(array_filter(self::requests(), static fn(string $r): bool => str_starts_with($r, 'POST')));
         self::assertSame([$version === 'v1' ? 'POST /en/rapi/subdomainSetting/www.example.com' : 'POST /domain/1000/www.example.com/settings'], $writes);
+        self::assertAllAuthenticated();
+    }
+
+    /**
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testManagesDnsRecordsAndLoadBalancing(string $version, Closure $auth): void
+    {
+        $records = self::client($version, $auth())->dnsRecords();
+
+        self::assertCount(6, $records->loadBalancing('example.com'));
+        $created = $records->create('example.com', new DnsRecord('__probe__.example.com', 'TXT', 'probe'));
+        $updated = $records->update('example.com', $created->withValue('probe 2')->withUpstreamOptions(new UpstreamOptions(weight: 2, id: 1, modified: 'm')));
+        $records->delete('example.com', $updated);
+        self::assertSame(['probe 2', 2], [$updated->value(), $updated->upstreamOptions()?->weight()]);
         self::assertAllAuthenticated();
     }
 

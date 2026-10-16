@@ -183,6 +183,27 @@ final class EnvelopeTest extends TestCase
         self::assertSame(['data' => []], Envelope::parse(self::request(), new Response(200, [], '{"data":[]}'))->toArray());
     }
 
+    public function testAServerErrorKeepsMyrasMessage(): void
+    {
+        $this->expectException(TransportException::class);
+        $this->expectExceptionMessage('PUT ' . self::URI . ': server error (HTTP 500). Myra says: An internal error occurred. Reference: 0123abcd; second');
+
+        Envelope::parse(self::request(), new Response(500, [], '{"error":true,"violationList":[{"propertyPath":"","message":"An internal error occurred. Reference: 0123abcd"},{"message":"second"},{"code":"x"},"junk"]}'));
+    }
+
+    #[TestWith(['{"error":true}'])]
+    #[TestWith(['{"error":true,"violationList":"x"}'])]
+    #[TestWith(['<html>Bad Gateway</html>'])]
+    public function testAServerErrorWithoutViolationsSaysNoMore(string $body): void
+    {
+        try {
+            Envelope::parse(self::request(), new Response(502, [], $body));
+            self::fail('No exception thrown.');
+        } catch (TransportException $exception) {
+            self::assertSame('PUT ' . self::URI . ': server error (HTTP 502).', $exception->getMessage());
+        }
+    }
+
     #[TestWith([200])]
     #[TestWith([204])]
     #[TestWith([299])]

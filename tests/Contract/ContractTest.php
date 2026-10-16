@@ -55,6 +55,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(\Myracloud\WebApi\Model\Page::class)]
 #[UsesClass(\Myracloud\WebApi\Model\Domain::class)]
 #[UsesClass(\Myracloud\WebApi\Model\DnsRecord::class)]
+#[UsesClass(\Myracloud\WebApi\Model\UpstreamOptions::class)]
 #[UsesClass(\Myracloud\WebApi\Model\CacheClear::class)]
 #[UsesClass(\Myracloud\WebApi\Model\CacheClearBody::class)]
 #[UsesClass(\Myracloud\WebApi\Model\DomainName::class)]

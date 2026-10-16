@@ -37,22 +37,22 @@ _done: list/page_
 
 ## DNS records
 
-_done: list/page_
+_done; reads and writes captured (81–97) with inactive TXT and A probes; v2 PUT …/load-balancing answered HTTP 500 (unverified) — load balancing is changed through update() in both versions_
 
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
 | v1 | `GET /{lang}/rapi/dnsRecords/{domain}/{page}` | read | R | ✓ |
-| v1 | `PUT /{lang}/rapi/dnsRecords/{domain}` | write | – | – |
-| v1 | `POST /{lang}/rapi/dnsRecords/{domain}` | write | – | – |
-| v1 | `DELETE /{lang}/rapi/dnsRecords/{domain}` | write | – | – |
-| v2 | `GET /domain/{domainId}/dns-records/{id}` | read | R | – |
-| v2 | `PUT /domain/{domainId}/dns-records/{id}` | write | – | – |
-| v2 | `DELETE /domain/{domainId}/dns-records/{id}` | write | – | – |
-| v2 | `GET /domain/{domainId}/load-balancing` | read | R | – |
+| v1 | `PUT /{lang}/rapi/dnsRecords/{domain}` | write | W | ✓ |
+| v1 | `POST /{lang}/rapi/dnsRecords/{domain}` | write | W | ✓ |
+| v1 | `DELETE /{lang}/rapi/dnsRecords/{domain}` | write | W | ✓ |
+| v2 | `GET /domain/{domainId}/dns-records/{id}` | read | R | ✓ |
+| v2 | `PUT /domain/{domainId}/dns-records/{id}` | write | W | ✓ |
+| v2 | `DELETE /domain/{domainId}/dns-records/{id}` | write | W | ✓ |
+| v2 | `GET /domain/{domainId}/load-balancing` | read | R | ✓ |
 | v2 | `GET /domain/{domainId}/dns-records` | read | R | ✓ |
-| v2 | `POST /domain/{domainId}/dns-records` | write | – | – |
-| v2 | `GET /domain/{domainId}/vhost/{vhostId}/dns-records` | read | R | – |
-| v2 | `PUT /domain/{domainId}/dns-records/{id}/load-balancing` | write | – | – |
+| v2 | `POST /domain/{domainId}/dns-records` | write | W | ✓ |
+| v2 | `GET /domain/{domainId}/vhost/{vhostId}/dns-records` | read | R | ✓ |
+| v2 | `PUT /domain/{domainId}/dns-records/{id}/load-balancing` | write | 500 | ✓u |
 
 ## Cache clear
 
@@ -125,11 +125,13 @@ _done; reads captured, write probed with the unchanged (empty) own settings (69�
 
 ## Load balancing
 
+_done as part of DNS records: loadBalancing() lists, update() with upstreamOptions changes (captured in both versions)_
+
 _v2 ops are in Dns Record (load-balancing)_
 
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
-| v1 | `GET /{lang}/rapi/dnsRecords/{domain}/{page}?loadbalancer=true` | read | R | – |
+| v1 | `GET /{lang}/rapi/dnsRecords/{domain}/{page}?loadbalancer=true` | read | R | ✓ |
 
 ## Maintenance
 

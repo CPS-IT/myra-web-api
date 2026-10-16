@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Domain::class)]
 #[CoversClass(DnsRecord::class)]
+#[UsesClass(\Myracloud\WebApi\Model\UpstreamOptions::class)]
 #[CoversClass(CacheClear::class)]
 #[UsesClass(JsonObject::class)]
 #[UsesClass(TransportException::class)]
@@ -58,10 +59,35 @@ final class ModelsTest extends TestCase
 
     public function testADnsRecordNeedsNoAlternativeCname(): void
     {
-        $record = DnsRecord::fromJson(new JsonObject(['id' => 1, 'name' => 'mx.example.com', 'recordType' => 'MX', 'value' => 'mail.example.com', 'ttl' => 300, 'active' => false, 'enabled' => true]));
+        $record = DnsRecord::fromJson(new JsonObject(['id' => 1, 'name' => 'mx.example.com', 'recordType' => 'MX', 'value' => 'mail.example.com', 'ttl' => 300, 'active' => false, 'enabled' => true, 'upstreamOptions' => null]));
 
         self::assertNull($record->alternativeCname());
         self::assertFalse($record->isActive());
+        self::assertSame(0, $record->priority());
+        self::assertNull($record->upstreamOptions());
+        self::assertNull($record->modified());
+    }
+
+    public function testReadsTheLoadBalancingSettingsOfARecord(): void
+    {
+        $record = DnsRecord::fromJson(new JsonObject(self::items('v1/dns-records/list', 'list')[0]));
+        $options = $record->upstreamOptions();
+
+        self::assertNotNull($options);
+        self::assertSame([1, 100, '1', false, false], [$options->weight(), $options->maxFails(), $options->failTimeout(), $options->isBackup(), $options->isDown()]);
+        self::assertNotNull($options->id());
+        self::assertNotNull($options->modified());
+    }
+
+    public function testOtherUpstreamOptionShapesStayInRaw(): void
+    {
+        // captured: a TXT record answers a partial UpstreamOptionsVO (no weight, no id)
+        $raw = ['id' => 1, 'name' => 'txt.example.com', 'recordType' => 'TXT', 'value' => 'x', 'ttl' => 300, 'active' => false, 'enabled' => true, 'modified' => 'm',
+            'upstreamOptions' => ['objectType' => 'UpstreamOptionsVO', 'backup' => false, 'down' => false]];
+        $record = DnsRecord::fromJson(new JsonObject($raw));
+
+        self::assertNull($record->upstreamOptions());
+        self::assertSame($raw['upstreamOptions'], $record->withValue('y')->toJson()['upstreamOptions']);
     }
 
     public function testADnsRecordWithoutAModelledFieldIsAnUnexpectedResponse(): void
@@ -104,7 +130,7 @@ final class ModelsTest extends TestCase
     public function testModelsCanBeBuiltWithoutAnAnswer(): void
     {
         self::assertSame([], (new Domain(1, 'example.com'))->raw());
-        self::assertSame([], (new DnsRecord(1, 'example.com', 'A', '192.0.2.1', 300, true, true))->raw());
+        self::assertSame([], (new DnsRecord('example.com', 'A', '192.0.2.1'))->raw());
         self::assertSame([], (new CacheClear('example.com', '/*', true))->raw());
     }
 

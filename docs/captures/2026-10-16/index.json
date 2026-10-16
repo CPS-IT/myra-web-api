@@ -818,5 +818,175 @@
         "status": 200,
         "finding": "v2 update: answer in data (the GET answers in targetObject)",
         "file": "v2-0080-settings-update-unchanged.json"
+    },
+    {
+        "case": "81",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/dnsRecords/example.com/1?loadbalancer=true&recordTypes=A,AAAA,CNAME",
+        "status": 200,
+        "finding": "load balancing in v1: the DNS list with ?loadbalancer=true&recordTypes=A,AAAA,CNAME \u2014 records with upstreamOptions",
+        "file": "v1-0081-v1 by domain-en-rapi-dnsRecords-example-com-1-loadbalancer-true-recordTypes-A-AAAA-CNAME.json"
+    },
+    {
+        "case": "82",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/load-balancing",
+        "status": 200,
+        "finding": "load balancing in v2: /domain/{id}/load-balancing, the same records",
+        "file": "v2-0082-v2 by domain-domain-1000-load-balancing.json"
+    },
+    {
+        "case": "83",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/dns-records/1021",
+        "status": 200,
+        "finding": "get by id: one-element data list",
+        "file": "v2-0083-DNS records-domain-1000-dns-records-1021.json"
+    },
+    {
+        "case": "84",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/vhost/1007/dns-records",
+        "status": 200,
+        "finding": "the records of one vhost, by its v2 vhostId",
+        "file": "v2-0084-DNS records-domain-1000-vhost-1007-dns-records.json"
+    },
+    {
+        "case": "85",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "PUT",
+        "path": "/en/rapi/dnsRecords/example.org",
+        "status": 200,
+        "finding": "v1 create (probe: inactive TXT __probe__.<domain>); a TXT record answers a partial UpstreamOptionsVO (backup, down only)",
+        "file": "v1-0085-dns-create-txt.json"
+    },
+    {
+        "case": "86",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/dnsRecords/example.org",
+        "status": 200,
+        "finding": "v1 update: the complete record as read, changes on top",
+        "file": "v1-0086-dns-update.json"
+    },
+    {
+        "case": "87",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/dnsRecords/example.org",
+        "status": 200,
+        "finding": "stale modified: HTTP 200 + error: true",
+        "file": "v1-0087-dns-update-stale.json"
+    },
+    {
+        "case": "88",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "PUT",
+        "path": "/en/rapi/dnsRecords/example.org",
+        "status": 200,
+        "finding": "probe A record (192.0.2.1, inactive) with default upstreamOptions (own id + modified)",
+        "file": "v1-0088-dns-create-a.json"
+    },
+    {
+        "case": "89",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "POST",
+        "path": "/en/rapi/dnsRecords/example.org",
+        "status": 200,
+        "finding": "load balancing changed through the normal update (weight 1 \u2192 2)",
+        "file": "v1-0089-dns-update-load-balancing.json"
+    },
+    {
+        "case": "90",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "DELETE",
+        "path": "/en/rapi/dnsRecords/example.org",
+        "status": 200,
+        "finding": "v1 delete: body {id, modified}",
+        "file": "v1-0090-dns-cleanup.json"
+    },
+    {
+        "case": "91",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/domain/1140/dns-records",
+        "status": 201,
+        "finding": "v2 create: HTTP 201",
+        "file": "v2-0091-dns-create-txt.json"
+    },
+    {
+        "case": "92",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1140/dns-records/90009",
+        "status": 200,
+        "finding": "v2 update: PUT \u2026/dns-records/{id}",
+        "file": "v2-0092-dns-update.json"
+    },
+    {
+        "case": "93",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1140/dns-records/90009",
+        "status": 400,
+        "finding": "stale modified: HTTP 400",
+        "file": "v2-0093-dns-update-stale.json"
+    },
+    {
+        "case": "94",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "POST",
+        "path": "/domain/1140/dns-records",
+        "status": 201,
+        "finding": "probe A record in v2",
+        "file": "v2-0094-dns-create-a.json"
+    },
+    {
+        "case": "95",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1140/dns-records/90011",
+        "status": 200,
+        "finding": "load balancing changed through the normal update in v2 too (weight 1 \u2192 2)",
+        "file": "v2-0095-dns-update-load-balancing.json"
+    },
+    {
+        "case": "96",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "PUT",
+        "path": "/domain/1140/dns-records/90011/load-balancing",
+        "status": 500,
+        "finding": "PUT \u2026/{id}/load-balancing: HTTP 500 'An internal error occurred' for the inactive probe record (also with the upstream object's own id) \u2014 unverified",
+        "file": "v2-0096-dns-load-balancing-endpoint.json"
+    },
+    {
+        "case": "97",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "DELETE",
+        "path": "/domain/1140/dns-records/90009",
+        "status": 204,
+        "finding": "v2 delete: HTTP 204",
+        "file": "v2-0097-dns-cleanup.json"
     }
 ]
