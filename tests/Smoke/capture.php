@@ -6,6 +6,7 @@ declare(strict_types=1);
  * Captures READ answers of the real Myra API for fixtures — anonymised in memory.
  *
  *     php tests/Smoke/capture.php            # credentials: .smoke.env (see run.php)
+ *     php tests/Smoke/capture.php --only='v2:/ip-ranges?page=2,v1:/networks/2'   # just these GETs
  *
  * GET requests only (plus nothing that could change state), v1 with HMAC, v2 with the
  * token, for every domain of the account; ids and vhost names are discovered from earlier
@@ -209,6 +210,20 @@ function firstId(mixed $body): ?int
 }
 
 // ------------------------------------------------------------------ targets
+
+$only = getopt('', ['only:'])['only'] ?? null;
+if (is_string($only)) {
+    foreach (explode(',', $only) as $target) {
+        [$version, $path] = explode(':', $target, 2) + [1 => ''];
+        if (!isset($clients[$version]) || !str_starts_with($path, '/')) {
+            fwrite(STDERR, "--only takes version:/path pairs, e.g. v2:/ip-ranges — got \"$target\"\n");
+            exit(2);
+        }
+        $capture('probe', $version, $path);
+    }
+    printf("\n%d requests, %d written to .cache/captures/ (anonymised), %d withheld.\n", $count, $written, $count - $written);
+    exit(0);
+}
 
 $account = [
     ['v2', '/ip-ranges', 'IP ranges'], ['v1', '/networks', 'IP ranges'],
