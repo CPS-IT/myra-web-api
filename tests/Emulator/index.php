@@ -269,6 +269,8 @@ final class Emulator
                 => Answer::fixture('v2/statistics/query'),
             preg_match('#^/statistics/([a-z-]+)/\d+/\d+(/.*)?$#', $route, $m) === 1
                 => $this->statistics($m[1], $m[2] ?? ''),
+            $this->method === 'GET' && preg_match('#^/waf/(conditions|conditions/matching-types|actions|actions/values|countries)$#', $route, $m) === 1
+                => Answer::fixture('v2/waf/' . ['conditions' => 'conditions', 'conditions/matching-types' => 'matching-types', 'actions' => 'actions', 'actions/values' => 'action-values', 'countries' => 'countries'][$m[1]]),
             $this->method === 'GET' && $route === '/ssl-configurations'
                 => Answer::page('v2/certificates/configurations', 'data', $page),
             $this->method === 'GET' && preg_match('#^/domain/(\d+)/ssl/certificates(/\d+)?$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)

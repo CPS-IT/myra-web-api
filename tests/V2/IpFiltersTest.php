@@ -26,6 +26,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(V2\MaintenanceTemplates::class)]
 #[UsesClass(V2\Subdomains::class)]
 #[UsesClass(V2\DomainVerifications::class)]
+#[UsesClass(V2\Waf::class)]
 #[UsesClass(V2\Client::class)]
 #[UsesClass(V2\Domains::class)]
 #[UsesClass(V2\DnsRecords::class)]

@@ -33,6 +33,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(V2\MaintenanceTemplates::class)]
 #[UsesClass(V2\Subdomains::class)]
 #[UsesClass(V2\DomainVerifications::class)]
+#[UsesClass(V2\Waf::class)]
 #[CoversClass(V2\DomainIdResolver::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\HmacSignature::class)]
@@ -247,6 +248,7 @@ final class ClientTest extends TestCase
         self::assertSame($client->sslCertificates(), $client->sslCertificates());
         self::assertSame($client->subdomains(), $client->subdomains());
         self::assertSame($client->domainVerifications(), $client->domainVerifications());
+        self::assertSame($client->waf(), $client->waf());
         self::assertSame($client->maintenanceTemplates(), $client->maintenanceTemplates());
     }
 

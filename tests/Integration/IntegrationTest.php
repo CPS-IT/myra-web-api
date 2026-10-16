@@ -163,6 +163,11 @@ final class IntegrationTest extends TestCase
         self::assertCount(1, $client->subdomains()->search('example.com', true));
         self::assertSame('example.com', $client->domains()->get(1000)->name());
         self::assertTrue($client->domainVerifications()->status('example.com')->verified());
+        self::assertCount(23, $client->waf()->conditions());
+        self::assertCount(14, $client->waf()->actions());
+        self::assertCount(250, $client->waf()->countries());
+        self::assertArrayHasKey('default', $client->waf()->matchingTypes());
+        self::assertArrayHasKey('customKey', $client->waf()->actionValues());
         try {
             $client->domainVerifications()->check('example.com');
             self::fail('No exception thrown.');

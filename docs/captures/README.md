@@ -187,6 +187,11 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 162 | v2 | `GET /domain/1000/ssl/certificates?page=2&pageSize=2` | 200 | v2 pages by query |
 | 163 | v2 | `GET /domain/1000/ssl/certificates/90001` | 200 | v2 get by id: one-element data |
 | 164 | v2 | `GET /ssl-configurations` | 200 | Myra's SSL configurations (name, ciphers, tls13Ciphers, protocols; names and cipher lists redacted by the anonymiser) |
+| 165 | v2 | `GET /waf/conditions` | 200 | WAF condition catalogue (account-independent): WafConditionVO name, category, alias, key, availablePhases; labels redacted by the anonymiser |
+| 166 | v2 | `GET /waf/conditions/matching-types` | 200 | matching types by category (default, score, country, …): a map, not a list |
+| 167 | v2 | `GET /waf/actions` | 200 | WAF action catalogue: WafActionVO name, type, availablePhases; forceCustomValues is an int here (bool in conditions) |
+| 168 | v2 | `GET /waf/actions/values` | 200 | allowed values per action type: {customKey: type → value → label, requiresValue: type → value → bool} |
+| 169 | v2 | `GET /waf/countries` | 200 | 250 countries in ONE answer although pageSize says 50 (unpaged like the account's subdomains); names redacted |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.

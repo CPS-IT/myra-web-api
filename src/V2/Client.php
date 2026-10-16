@@ -40,6 +40,7 @@ final readonly class Client implements Contract\Client
     private MaintenanceTemplates $maintenanceTemplates;
     private Subdomains $subdomains;
     private DomainVerifications $domainVerifications;
+    private Waf $waf;
 
     /**
      * @param string $baseUri e.g. of a local emulator
@@ -69,6 +70,7 @@ final readonly class Client implements Contract\Client
         $this->maintenanceTemplates = new MaintenanceTemplates($transport, $this->domainIds);
         $this->subdomains = new Subdomains($transport, $this->domainIds);
         $this->domainVerifications = new DomainVerifications($transport, $this->domainIds);
+        $this->waf = new Waf($transport);
     }
 
     public function domains(): Domains
@@ -153,6 +155,14 @@ final readonly class Client implements Contract\Client
     public function domainVerifications(): DomainVerifications
     {
         return $this->domainVerifications;
+    }
+
+    /**
+     * The WAF catalogue: conditions, actions, countries (v2 only).
+     */
+    public function waf(): Waf
+    {
+        return $this->waf;
     }
 
     /**

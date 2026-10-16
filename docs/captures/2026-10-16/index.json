@@ -1658,5 +1658,55 @@
         "status": 200,
         "finding": "Myra's SSL configurations (name, ciphers, tls13Ciphers, protocols; names and cipher lists redacted by the anonymiser)",
         "file": "v2-0164-probe-ssl-configurations.json"
+    },
+    {
+        "case": "165",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/waf/conditions",
+        "status": 200,
+        "finding": "WAF condition catalogue (account-independent): WafConditionVO name, category, alias, key, availablePhases; labels redacted by the anonymiser",
+        "file": "v2-0165-waf-waf-conditions.json"
+    },
+    {
+        "case": "166",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/waf/conditions/matching-types",
+        "status": 200,
+        "finding": "matching types by category (default, score, country, \u2026): a map, not a list",
+        "file": "v2-0166-waf-waf-conditions-matching-types.json"
+    },
+    {
+        "case": "167",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/waf/actions",
+        "status": 200,
+        "finding": "WAF action catalogue: WafActionVO name, type, availablePhases; forceCustomValues is an int here (bool in conditions)",
+        "file": "v2-0167-waf-waf-actions.json"
+    },
+    {
+        "case": "168",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/waf/actions/values",
+        "status": 200,
+        "finding": "allowed values per action type: {customKey: type \u2192 value \u2192 label, requiresValue: type \u2192 value \u2192 bool}",
+        "file": "v2-0168-waf-waf-actions-values.json"
+    },
+    {
+        "case": "169",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/waf/countries",
+        "status": 200,
+        "finding": "250 countries in ONE answer although pageSize says 50 (unpaged like the account's subdomains); names redacted",
+        "file": "v2-0169-waf-waf-countries.json"
     }
 ]

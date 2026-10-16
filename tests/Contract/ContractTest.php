@@ -61,6 +61,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V2\MaintenanceTemplates::class)]
 #[CoversClass(V2\Subdomains::class)]
 #[CoversClass(V2\DomainVerifications::class)]
+#[CoversClass(V2\Waf::class)]
 #[CoversClass(V2\DomainIdResolver::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\HmacSignature::class)]

@@ -290,11 +290,11 @@ _done (156); verification/check = write, built from the spec (unverified); PUT a
 
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
-| v2 | `GET /waf/conditions` | read | R | – |
-| v2 | `GET /waf/conditions/matching-types` | read | R | – |
-| v2 | `GET /waf/actions` | read | R | – |
-| v2 | `GET /waf/actions/values` | read | R | – |
-| v2 | `GET /waf/countries` | read | R | – |
+| v2 | `GET /waf/conditions` | read | R | ✓ |
+| v2 | `GET /waf/conditions/matching-types` | read | R | ✓ |
+| v2 | `GET /waf/actions` | read | R | ✓ |
+| v2 | `GET /waf/actions/values` | read | R | ✓ |
+| v2 | `GET /waf/countries` | read | R | ✓ |
 | v2 | `POST /domain/{domainId}/{vHostName}/waf-rules` | write | – | – |
 | v2 | `PUT /domain/{domainId}/{vHostName}/waf-rules/{id}` | write | – | – |
 | v2 | `GET /domain/waf-rules/{id}` | read | – | – |

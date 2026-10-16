@@ -22,6 +22,7 @@ use PHPUnit\Framework\TestCase;
  */
 #[CoversClass(V2\Subdomains::class)]
 #[CoversClass(V2\DomainVerifications::class)]
+#[UsesClass(V2\Waf::class)]
 #[CoversClass(V2\Domains::class)]
 #[CoversClass(Subdomain::class)]
 #[CoversClass(DomainVerification::class)]

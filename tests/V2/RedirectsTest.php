@@ -28,6 +28,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(V2\MaintenanceTemplates::class)]
 #[UsesClass(V2\Subdomains::class)]
 #[UsesClass(V2\DomainVerifications::class)]
+#[UsesClass(V2\Waf::class)]
 #[CoversClass(V2\DomainIdResolver::class)]
 #[UsesClass(V2\Client::class)]
 #[UsesClass(V2\Domains::class)]
