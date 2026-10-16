@@ -39,11 +39,16 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 14 | v2 | `recursive: "x"` | 403 | violation on `recursive`, type error |
 | 15 | v2 | domain **name** instead of id | 403 | rejected — v2 needs the numeric id |
 | 16 | v2 | `GET /domains?page=2` | 200 | paging via `?page=`: echoed as `page: 2`; past the last page `data` is empty; `count` = total hits |
+| 17 | v1 | `GET /en/rapi/domains/1` | 200 | same `DomainVO` as v2, field by field and ids; no `paused`/`pausedUntil` (the manual shows them) |
+| 18 | v1 | `GET /en/rapi/domains/2` | 200 | page in the path, echoed; past the last page `list` is empty; `count` = total |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.
 
+Cases 17/18 and the HMAC-on-v2 confirmation come from `tests/Smoke/run.php` (all four
+version × auth combinations through this package, 12/12 passed): v2 signed with HMAC
+works, including a query string (`/domains?page=2`); Bearer works on v1.
+
 Missing, needed before the other areas are implemented: one list call and one harmless write
 per version for subdomain settings, cache settings, redirects, IP filter, maintenance, SSL
-certificates, statistics, IP ranges, load balancing; and one v2 request signed with HMAC
-through this package (confirms the v2 signing string).
+certificates, statistics, IP ranges, load balancing.

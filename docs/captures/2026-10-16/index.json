@@ -178,5 +178,25 @@
         "status": 200,
         "finding": "paging: ?page=2 honoured, empty data past the last page, count = total",
         "file": "v2-0016-domain-list-page-2.json"
+    },
+    {
+        "case": "17",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/domains/1",
+        "status": 200,
+        "finding": "domain list v1: the same DomainVO objects as v2 (identical field by field, same ids); no paused/",
+        "file": "v1-0017-domain-list.json"
+    },
+    {
+        "case": "18",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/domains/2",
+        "status": 200,
+        "finding": "paging v1: page in the path, echoed as page: 2; past the last page list is empty; count = t",
+        "file": "v1-0018-domain-list-page-2.json"
     }
 ]
