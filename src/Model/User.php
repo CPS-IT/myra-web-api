@@ -9,6 +9,8 @@ use Myracloud\WebApi\Http\JsonObject;
 
 /**
  * A user of the organisation (`UserVO`, v2 only; `user/me` sends `UserExtendedVO` with sessions — in raw()).
+ *
+ * Changes go through withEmail() / withName() on a user read before ({@see \Myracloud\WebApi\V2\Users::update()}).
  */
 final readonly class User
 {
@@ -78,6 +80,51 @@ final readonly class User
     public function locked(): bool
     {
         return $this->locked;
+    }
+
+    /**
+     * Version for optimistic locking, exactly as Myra sent it.
+     */
+    public function modified(): ?string
+    {
+        $modified = $this->raw['modified'] ?? null;
+
+        return is_string($modified) ? $modified : null;
+    }
+
+    /**
+     * The new address is also the new login (the spec: login should equal email).
+     */
+    public function withEmail(string $email): self
+    {
+        return new self($this->id, $email, $email, $this->firstname, $this->lastname, $this->active, $this->locked, $this->raw);
+    }
+
+    public function withName(string $firstname, string $lastname): self
+    {
+        return new self($this->id, $this->login, $this->email, $firstname, $lastname, $this->active, $this->locked, $this->raw);
+    }
+
+    /**
+     * The update body of the spec: id, modified, email, login, names — and the role fields
+     * (roles, rootGroupRoles, isIndirectCustomer) exactly as read, never defaulted: whether
+     * Myra keeps a role field that is left out is not verified, and dropping one could take
+     * away a user's (or your own) administrator rights.
+     *
+     * @internal
+     *
+     * @return array<string, mixed>
+     */
+    public function toJson(): array
+    {
+        $json = ['id' => $this->id, 'modified' => $this->modified(), 'email' => $this->email, 'login' => $this->login, 'firstname' => $this->firstname, 'lastname' => $this->lastname];
+        foreach (['roles', 'rootGroupRoles', 'isIndirectCustomer'] as $key) {
+            if (array_key_exists($key, $this->raw)) {
+                $json[$key] = $this->raw[$key];
+            }
+        }
+
+        return $json;
     }
 
     /**

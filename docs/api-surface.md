@@ -348,19 +348,19 @@ _TSIG secret never returned_
 
 ## Users, groups, permissions (v2)
 
-_reads done (170–185), anonymised in memory and reviewed by eye; writes open (spec, unverified)_
+_reads done (170–185), anonymised in memory and reviewed by eye; users/groups/permissions writes from the spec (unverified, never probed); tokens, API keys, passwords next_
 
 _personal data: anonymise in memory_
 
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
 | v2 | `GET /users/{id}` | read | R | ✓ |
-| v2 | `PUT /users/{id}` | write | – | – |
-| v2 | `DELETE /users/{id}` | write | – | – |
+| v2 | `PUT /users/{id}` | write | – | ✓u |
+| v2 | `DELETE /users/{id}` | write | – | ✓u |
 | v2 | `GET /user/me` | read | R | ✓ |
 | v2 | `POST /user/reauthenticate` | write | – | – |
 | v2 | `GET /users` | read | R | ✓ |
-| v2 | `POST /users` | write | – | – |
+| v2 | `POST /users` | write | – | ✓u |
 | v2 | `GET /user/{id}/groups` | read | R | ✓ |
 | v2 | `POST /user/password/reset` | write | – | – |
 | v2 | `POST /user/password/new` | write | – | – |
@@ -368,24 +368,24 @@ _personal data: anonymise in memory_
 | v2 | `GET /user/{id}/api-keys` | read | R | ✓ |
 | v2 | `POST /user/{id}/api-keys` | write | – | – |
 | v2 | `DELETE /user/{userId}/api-keys/{id}` | write | – | – |
-| v2 | `DELETE /user/{userId}/sessions/{id}` | write | – | – |
+| v2 | `DELETE /user/{userId}/sessions/{id}` | write | – | ✓u |
 | v2 | `GET /user/{id}/activities` | read | R | ✓ |
 | v2 | `GET /user/groups` | read | R | ✓ |
-| v2 | `POST /user/groups` | write | – | – |
+| v2 | `POST /user/groups` | write | – | ✓u |
 | v2 | `GET /user/groups/{id}` | read | R | ✓ |
-| v2 | `PUT /user/groups/{id}` | write | – | – |
-| v2 | `DELETE /user/groups/{id}` | write | – | – |
+| v2 | `PUT /user/groups/{id}` | write | – | ✓u |
+| v2 | `DELETE /user/groups/{id}` | write | – | ✓u |
 | v2 | `GET /user/group/{id}/users` | read | R | ✓ |
-| v2 | `POST /user/group/{id}/users` | write | – | – |
-| v2 | `DELETE /user/group/{id}/users/{userId}` | write | – | – |
+| v2 | `POST /user/group/{id}/users` | write | – | ✓u |
+| v2 | `DELETE /user/group/{id}/users/{userId}` | write | – | ✓u |
 | v2 | `GET /user/group/{id}/permissions` | read | R | ✓ |
-| v2 | `POST /user/group/{id}/permissions` | write | – | – |
+| v2 | `POST /user/group/{id}/permissions` | write | – | ✓u |
 | v2 | `GET /user/{id}/permissions` | read | R | ✓ |
-| v2 | `POST /user/{id}/permissions` | write | – | – |
+| v2 | `POST /user/{id}/permissions` | write | – | ✓u |
 | v2 | `GET /user/permissions` | read | R | ✓ |
-| v2 | `POST /user/permissions/check` | write | – | – |
-| v2 | `DELETE /user/group/{groupId}/permissions/{id}` | write | – | – |
-| v2 | `DELETE /user/{userId}/permissions/{id}` | write | – | – |
+| v2 | `POST /user/permissions/check` | write | – | ✓u |
+| v2 | `DELETE /user/group/{groupId}/permissions/{id}` | write | – | ✓u |
+| v2 | `DELETE /user/{userId}/permissions/{id}` | write | – | ✓u |
 | v2 | `GET /user/tokens` | read | R | ✓ |
 | v2 | `POST /user/tokens` | write | – | – |
 | v2 | `PUT /user/tokens/{id}` | write | – | – |

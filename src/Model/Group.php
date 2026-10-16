@@ -74,6 +74,34 @@ final readonly class Group
     }
 
     /**
+     * Version for optimistic locking, exactly as Myra sent it.
+     */
+    public function modified(): ?string
+    {
+        $modified = $this->raw['modified'] ?? null;
+
+        return is_string($modified) ? $modified : null;
+    }
+
+    public function withName(string $name): self
+    {
+        return new self($this->id, $name, $this->type, $this->roles, $this->membersCount, $this->raw);
+    }
+
+    /**
+     * The update body of the spec; `parent` is required there but not in the captured
+     * GroupVO, so it is given by the caller.
+     *
+     * @internal
+     *
+     * @return array<string, mixed>
+     */
+    public function toJson(int $parent): array
+    {
+        return ['id' => $this->id, 'modified' => $this->modified(), 'name' => $this->name, 'parent' => $parent];
+    }
+
+    /**
      * @return array<mixed>
      */
     public function raw(): array

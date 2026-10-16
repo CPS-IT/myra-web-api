@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Myracloud\WebApi\V2;
 
 use Closure;
+use Myracloud\WebApi\Exception\InvalidArgumentException;
 use Myracloud\WebApi\Exception\MyraException;
+use Myracloud\WebApi\Exception\RequestRejectedException;
 use Myracloud\WebApi\Http\JsonObject;
 use Myracloud\WebApi\Http\Transport;
 use Myracloud\WebApi\Model\Activity;
@@ -13,6 +15,7 @@ use Myracloud\WebApi\Model\ApiKey;
 use Myracloud\WebApi\Model\Group;
 use Myracloud\WebApi\Model\Page;
 use Myracloud\WebApi\Model\Permission;
+use Myracloud\WebApi\Model\Persisted;
 use Myracloud\WebApi\Model\Token;
 use Myracloud\WebApi\Model\User;
 
@@ -20,6 +23,10 @@ use Myracloud\WebApi\Model\User;
  * Users, groups, permissions, API keys and tokens of the organisation (v2 only):
  * `/users`, `/user/…`. Reads captured; lists are collected over all pages (the own
  * permissions come unpaged, captured).
+ *
+ * Every write here is *unverified* (built from the spec; users, groups and permissions are
+ * never probed against a live account). Creates take their fields as arguments, updates the
+ * object read before, changed with with…().
  */
 final readonly class Users
 {
@@ -150,6 +157,181 @@ final readonly class Users
     public function groupPermissions(int $groupId): array
     {
         return $this->collect('user/group/' . $groupId . '/permissions', Permission::fromJson(...));
+    }
+
+    /**
+     * Creates a user account (`login` = `email`, as the spec asks).
+     *
+     * @param list<string> $roles "ADMINISTRATOR" or "USER"; none = Myra's default
+     *
+     * @throws MyraException
+     */
+    public function create(string $email, string $firstname = '', string $lastname = '', array $roles = []): User
+    {
+        $body = ['email' => $email, 'login' => $email, 'firstname' => $firstname, 'lastname' => $lastname] + ($roles === [] ? [] : ['roles' => $roles]);
+
+        return User::fromJson($this->transport->send('POST', 'users', body: $body)->first('data'));
+    }
+
+    /**
+     * Changes e-mail/login and names of a user read before. The role fields are sent exactly
+     * as read: whether Myra keeps one that is left out is not verified, and losing one could
+     * take away administrator rights — including your own.
+     *
+     * @throws InvalidArgumentException if id or modified is missing
+     * @throws MyraException
+     */
+    public function update(User $user): User
+    {
+        [$id] = Persisted::versionOf($user->id(), $user->modified(), 'user');
+
+        return User::fromJson($this->transport->send('PUT', 'users/' . $id, body: $user->toJson())->first('data'));
+    }
+
+    /**
+     * @param bool $force also when the user is still in groups (then removed from them first);
+     *                    without it, Myra refuses with the violation code "user_assigned_to_groups" (spec: 409)
+     *
+     * @throws RequestRejectedException
+     * @throws MyraException
+     */
+    public function delete(User $user, bool $force = false): void
+    {
+        $this->transport->send('DELETE', 'users/' . $user->id(), $force ? ['force' => 'true'] : []);
+    }
+
+    /**
+     * Ends a session of a user (the ids are in raw()['sessions'] of me()/get()).
+     *
+     * @throws MyraException
+     */
+    public function deleteSession(int $userId, int $sessionId): void
+    {
+        $this->transport->send('DELETE', 'user/' . $userId . '/sessions/' . $sessionId);
+    }
+
+    /**
+     * @param int $parent the id of the parent group (required by the spec)
+     *
+     * @throws MyraException
+     */
+    public function createGroup(string $name, int $parent): Group
+    {
+        return Group::fromJson($this->transport->send('POST', 'user/groups', body: ['name' => $name, 'parent' => $parent])->first('data'));
+    }
+
+    /**
+     * @param int $parent the id of the parent group — required by the spec, not part of the
+     *                    group as read, so given here
+     *
+     * @throws InvalidArgumentException if id or modified is missing
+     * @throws MyraException
+     */
+    public function updateGroup(Group $group, int $parent): Group
+    {
+        Persisted::versionOf($group->id(), $group->modified(), 'group');
+
+        return Group::fromJson($this->transport->send('PUT', 'user/groups/' . $group->id(), body: $group->toJson($parent))->first('data'));
+    }
+
+    /**
+     * @throws MyraException
+     */
+    public function deleteGroup(Group $group): void
+    {
+        $this->transport->send('DELETE', 'user/groups/' . $group->id());
+    }
+
+    /**
+     * Adds a user to a group with a role (`GroupRoleVO`, answered as Myra sends it).
+     *
+     * @param string $role "ADMINISTRATOR" or "USER"
+     *
+     * @return array<mixed>
+     *
+     * @throws MyraException
+     */
+    public function addGroupMember(int $groupId, User $user, string $role): array
+    {
+        $body = ['email' => $user->email(), 'login' => $user->login(), 'role' => $role, 'userId' => $user->id()];
+
+        return $this->transport->send('POST', 'user/group/' . $groupId . '/users', body: $body)->first('data')->toArray();
+    }
+
+    /**
+     * @throws MyraException
+     */
+    public function removeGroupMember(int $groupId, int $userId): void
+    {
+        $this->transport->send('DELETE', 'user/group/' . $groupId . '/users/' . $userId);
+    }
+
+    /**
+     * Gives a user a permission: an action on a kind of object, or on one object.
+     *
+     * @param string $objectType e.g. "Domain", "Tag", "Organization"
+     * @param string $action "READ", "EDIT", "CREATE" or "CACHE_CLEAR"
+     * @param int|null $objectId one object (`objectInstance`); null = the kind of object
+     *
+     * @throws MyraException
+     */
+    public function grantToUser(int $userId, string $objectType, string $action, ?int $objectId = null): Permission
+    {
+        return $this->grant('user/' . $userId . '/permissions', 'USER', $objectType, $action, $objectId);
+    }
+
+    /**
+     * @param string $objectType e.g. "Domain", "Tag", "Organization"
+     * @param string $action "READ", "EDIT", "CREATE" or "CACHE_CLEAR"
+     * @param int|null $objectId one object (`objectInstance`); null = the kind of object
+     *
+     * @throws MyraException
+     */
+    public function grantToGroup(int $groupId, string $objectType, string $action, ?int $objectId = null): Permission
+    {
+        return $this->grant('user/group/' . $groupId . '/permissions', 'GROUP', $objectType, $action, $objectId);
+    }
+
+    /**
+     * @throws MyraException
+     */
+    public function revokeFromUser(int $userId, Permission $permission): void
+    {
+        $this->transport->send('DELETE', 'user/' . $userId . '/permissions/' . $permission->id());
+    }
+
+    /**
+     * @throws MyraException
+     */
+    public function revokeFromGroup(int $groupId, Permission $permission): void
+    {
+        $this->transport->send('DELETE', 'user/group/' . $groupId . '/permissions/' . $permission->id());
+    }
+
+    /**
+     * Whether the user the credentials belong to may do $action (a read sent as POST).
+     *
+     * @param string $objectType e.g. "Domain"
+     * @param string $action "READ", "EDIT", "CREATE" or "CACHE_CLEAR"
+     * @param int|null $objectId one object; null = the kind of object
+     *
+     * @throws MyraException
+     */
+    public function isAuthorized(string $objectType, string $action, ?int $objectId = null): bool
+    {
+        $body = ['objectType' => $objectType, 'action' => $action] + ($objectId === null ? [] : ['objectInstance' => $objectId]);
+
+        return $this->transport->send('POST', 'user/permissions/check', body: $body)->first('data')->bool('isAuthorized');
+    }
+
+    /**
+     * @throws MyraException
+     */
+    private function grant(string $path, string $permissionType, string $objectType, string $action, ?int $objectId): Permission
+    {
+        $body = ['objectType' => $objectType, 'objectPermissionType' => $permissionType, 'action' => $action] + ($objectId === null ? [] : ['objectInstance' => $objectId]);
+
+        return Permission::fromJson($this->transport->send('POST', $path, body: $body)->first('data'));
     }
 
     /**

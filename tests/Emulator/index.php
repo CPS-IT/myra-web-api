@@ -27,6 +27,7 @@ declare(strict_types=1);
  * - maintenance: the account has none, so both vhosts answer the probe's captured list;
  * - DNS record writes are echoed in the captured shapes (stateless); the dedicated v2 load
  *   balancing PUT answers the captured HTTP 500;
+ * - users and organisation: writes echoed (spec only), deletes 204, the permission check grants;
  * - SSL certificates: writes echoed without certificate, key and password (Myra never returns
  *   them — manual); v2 lists of example.org are the empty v1 list;
  * - subdomains: the account list ignores paging (captured) and filters like Myra; a verification
@@ -283,6 +284,8 @@ final class Emulator
                 => Answer::fixture('v2/waf/' . ['conditions' => 'conditions', 'conditions/matching-types' => 'matching-types', 'actions' => 'actions', 'actions/values' => 'action-values', 'countries' => 'countries'][$m[1]]),
             $this->method === 'GET' && ($fixture = self::USER_READS[preg_replace('#/\d+(?=/|$)#', '/{id}', $route) ?? ''] ?? null) !== null
                 => in_array($fixture, ['users/list', 'users/activities', 'users/permissions-of-user'], true) ? Answer::page('v2/' . $fixture, 'data', $page) : Answer::fixture('v2/' . $fixture),
+            $this->method !== 'GET' && preg_match('#^/(users|user|organization)(/|$)#', $route) === 1
+                => $this->userWrite($route),
             $this->method === 'GET' && $route === '/ssl-configurations'
                 => Answer::page('v2/certificates/configurations', 'data', $page),
             $this->method === 'GET' && preg_match('#^/domain/(\d+)/ssl/certificates(/\d+)?$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
@@ -498,6 +501,34 @@ final class Emulator
         $answer = Answer::success($key, [$redirect]);
 
         return new Answer($status, $answer->contentType, $answer->body);
+    }
+
+    /**
+     * User and organisation writes (spec only, never captured): deletes answer 204, the
+     * permission check grants everything, everything else is echoed with an id.
+     */
+    private function userWrite(string $route): Answer
+    {
+        return match (true) {
+            $this->method === 'DELETE' => new Answer(204, null, ''),
+            $route === '/user/permissions/check' => Answer::success('data', [['isAuthorized' => true]]),
+            default => $this->withDefaults($this->written('UserApiVO', 'data', null, $this->method === 'POST' ? 201 : 200), str_starts_with($route, '/users') ? ['active' => true, 'locked' => false] : []),
+        };
+    }
+
+    /**
+     * Fields Myra always sends (e.g. in a UserVO) that a request body does not carry.
+     *
+     * @param array<string, mixed> $defaults
+     */
+    private function withDefaults(Answer $answer, array $defaults): Answer
+    {
+        $body = is_array($answer->body) ? $answer->body : [];
+        if (is_array($body['data'] ?? null) && is_array($body['data'][0] ?? null)) {
+            $body['data'][0] += $defaults;
+        }
+
+        return new Answer($answer->status, $answer->contentType, $body);
     }
 
     /**

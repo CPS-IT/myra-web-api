@@ -176,6 +176,13 @@ final class IntegrationTest extends TestCase
         self::assertCount(1, $users->tokens());
         self::assertCount(5, $users->groupMembers($users->groups()[0]->id()));
         self::assertCount(2, $client->organization()->contacts());
+        // writes against the emulator's echo (unverified at Myra)
+        $created = $users->create('new@example.com', 'Ada', 'Lovelace');
+        self::assertSame(['new@example.com', 4711], [$created->login(), $created->id()]);
+        self::assertSame('B', $users->update($created->withName('A', 'B'))->lastname());
+        $users->delete($created, force: true);
+        self::assertContains('DELETE /users/4711?force=true', self::requests());
+        self::assertTrue($users->isAuthorized('Domain', 'READ'));
         try {
             $client->domainVerifications()->check('example.com');
             self::fail('No exception thrown.');
