@@ -176,6 +176,16 @@ final class AnonymizerTest extends TestCase
         );
     }
 
+    public function testPermissionObjectsAreIdsAndLocationsGo(): void
+    {
+        $result = $this->anonymizer->value(['objectInstance' => 4242001, 'scopes' => [4242002], 'latitude' => 12.5, 'longitude' => 9, 'count' => 2]);
+
+        self::assertIsArray($result);
+        self::assertNotSame(4242001, $result['objectInstance']);
+        self::assertNotSame([4242002], $result['scopes']);
+        self::assertSame([0.0, 0.0, 2], [$result['latitude'], $result['longitude'], $result['count']]);
+    }
+
     public function testCertificateHashesStayHexPairs(): void
     {
         $result = $this->anonymizer->value(['fingerprint' => 'AB:CD:EF:01', 'serialNumber' => '0A:1B', 'again' => ['fingerprint' => 'AB:CD:EF:01']]);

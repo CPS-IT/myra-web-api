@@ -87,6 +87,9 @@ final class Anonymizer
         if (is_int($value) && self::isIdKey($key)) {
             return $this->id($value);
         }
+        if ((is_int($value) || is_float($value)) && in_array($key, ['latitude', 'longitude'], true)) {
+            return 0.0; // where someone logged in (user activities): personal, no structure
+        }
         if ($key === 'objectType') {
             return $value; // class names (RedirectVO, …): structure, not data
         }
@@ -408,7 +411,8 @@ final class Anonymizer
 
     private static function isIdKey(string $key): bool
     {
-        return preg_match('/(^id$|Id$|ID$|Ids$)/', $key) === 1;
+        // objectInstance / scopes: ids of the objects a permission applies to (captured with users)
+        return preg_match('/(^id$|Id$|ID$|Ids$|^objectInstance$|^scopes$)/', $key) === 1;
     }
 
     /**
