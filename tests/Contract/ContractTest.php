@@ -44,6 +44,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V1\ErrorPages::class)]
 #[CoversClass(V1\IpRanges::class)]
 #[CoversClass(V1\Statistics::class)]
+#[CoversClass(V1\SslCertificates::class)]
 #[CoversClass(V2\Client::class)]
 #[CoversClass(V2\Domains::class)]
 #[CoversClass(V2\DnsRecords::class)]
@@ -56,6 +57,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V2\ErrorPages::class)]
 #[CoversClass(V2\IpRanges::class)]
 #[CoversClass(V2\Statistics::class)]
+#[CoversClass(V2\SslCertificates::class)]
 #[CoversClass(V2\MaintenanceTemplates::class)]
 #[CoversClass(V2\Subdomains::class)]
 #[CoversClass(V2\DomainVerifications::class)]
@@ -80,6 +82,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(\Myracloud\WebApi\Model\ErrorPage::class)]
 #[UsesClass(\Myracloud\WebApi\Model\IpRange::class)]
 #[UsesClass(\Myracloud\WebApi\Model\StatisticQuery::class)]
+#[UsesClass(\Myracloud\WebApi\Model\SslCertificate::class)]
 #[UsesClass(\Myracloud\WebApi\Model\StatisticResult::class)]
 #[UsesClass(\Myracloud\WebApi\Model\StatisticValues::class)]
 #[UsesClass(\Myracloud\WebApi\Exception\RequestRejectedException::class)]
@@ -265,6 +268,26 @@ final class ContractTest extends TestCase
             [['example.com', 502, 90400], ['example.com', 504, 90401], ['www.example.com', 502, 90402], ['www.example.com', 504, 90403]],
             array_map(static fn(\Myracloud\WebApi\Model\ErrorPage $p): array => [$p->subdomain(), $p->errorCode(), $p->id()], $pages),
         );
+    }
+
+    /**
+     * The same SslCertVOs in both versions, per domain.
+     *
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testListsTheSslCertificatesOfADomain(string $version, Closure $auth): void
+    {
+        $http = self::answers($version, 'certificates/list');
+
+        $certificates = self::client($version, $auth(), $http)->sslCertificates()->list('example.com');
+
+        self::assertSame(
+            [[90001, ['example.com', 'www.example.com']], [90002, ['staging.example.com']], [90003, ['api.example.com']], [90004, ['api.staging.example.com']]],
+            array_map(static fn(\Myracloud\WebApi\Model\SslCertificate $c): array => [$c->id(), $c->subdomains()], $certificates),
+        );
+        self::assertStringEndsWith($version === 'v1' ? '/en/rapi/certificates/example.com/1' : '/domain/1000/ssl/certificates', $http->lastRequest()->getUri()->getPath());
     }
 
     /**

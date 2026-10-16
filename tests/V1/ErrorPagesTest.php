@@ -20,6 +20,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(V1\ErrorPages::class)]
 #[UsesClass(V1\IpRanges::class)]
 #[UsesClass(V1\Statistics::class)]
+#[UsesClass(V1\SslCertificates::class)]
 #[UsesClass(V1\Client::class)]
 #[UsesClass(V1\Domains::class)]
 #[UsesClass(V1\DnsRecords::class)]

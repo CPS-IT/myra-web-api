@@ -34,6 +34,7 @@ final readonly class Client implements Contract\Client
     private ErrorPages $errorPages;
     private IpRanges $ipRanges;
     private Statistics $statistics;
+    private SslCertificates $sslCertificates;
 
     /**
      * @param string $language language of Myra's messages (violations): "en" or "de"
@@ -71,6 +72,7 @@ final readonly class Client implements Contract\Client
         $this->errorPages = new ErrorPages($transport);
         $this->ipRanges = new IpRanges($transport);
         $this->statistics = new Statistics($transport);
+        $this->sslCertificates = new SslCertificates($transport);
     }
 
     public function domains(): Domains
@@ -126,5 +128,10 @@ final readonly class Client implements Contract\Client
     public function statistics(): Statistics
     {
         return $this->statistics;
+    }
+
+    public function sslCertificates(): SslCertificates
+    {
+        return $this->sslCertificates;
     }
 }

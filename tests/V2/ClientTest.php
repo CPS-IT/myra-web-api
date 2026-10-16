@@ -29,6 +29,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(V2\ErrorPages::class)]
 #[UsesClass(V2\IpRanges::class)]
 #[UsesClass(V2\Statistics::class)]
+#[UsesClass(V2\SslCertificates::class)]
 #[UsesClass(V2\MaintenanceTemplates::class)]
 #[UsesClass(V2\Subdomains::class)]
 #[UsesClass(V2\DomainVerifications::class)]
@@ -243,6 +244,7 @@ final class ClientTest extends TestCase
         self::assertSame($client->errorPages(), $client->errorPages());
         self::assertSame($client->ipRanges(), $client->ipRanges());
         self::assertSame($client->statistics(), $client->statistics());
+        self::assertSame($client->sslCertificates(), $client->sslCertificates());
         self::assertSame($client->subdomains(), $client->subdomains());
         self::assertSame($client->domainVerifications(), $client->domainVerifications());
         self::assertSame($client->maintenanceTemplates(), $client->maintenanceTemplates());

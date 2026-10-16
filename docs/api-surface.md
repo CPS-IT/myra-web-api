@@ -157,19 +157,19 @@ _done; probed with a maintenance for 2099 (never active) and v2 templates (98–
 
 ## SSL certificates
 
-_cert/key always empty in answers_
+_done (158–164): reads captured, v1 and v2 identical, per domain; writes from manual/spec (unverified); v1 has no delete (Myra removes unassigned certificates after a week)_
 
 | Version | Operation | Kind | Capture | Impl |
 |---|---|---|---|---|
-| v1 | `GET /{lang}/rapi/certificates/{domain}/{page}` | read | R | – |
-| v1 | `PUT /{lang}/rapi/certificates/{domain}` | write | – | – |
-| v1 | `POST /{lang}/rapi/certificates/{domain}` | write | – | – |
-| v2 | `GET /ssl-configurations` | read | R | – |
-| v2 | `GET /domain/{domainId}/ssl/certificates/{id}` | read | R | – |
-| v2 | `GET /domain/{domainId}/ssl/certificates` | read | R | – |
-| v2 | `POST /domain/{domainId}/certificates` | write | – | – |
-| v2 | `PUT /domain/{domainId}/certificates/{id}` | write | – | – |
-| v2 | `DELETE /domain/{domainId}/certificates/{id}` | write | – | – |
+| v1 | `GET /{lang}/rapi/certificates/{domain}/{page}` | read | R | ✓ |
+| v1 | `PUT /{lang}/rapi/certificates/{domain}` | write | – | ✓u |
+| v1 | `POST /{lang}/rapi/certificates/{domain}` | write | – | ✓u |
+| v2 | `GET /ssl-configurations` | read | R | ✓ |
+| v2 | `GET /domain/{domainId}/ssl/certificates/{id}` | read | R | ✓ |
+| v2 | `GET /domain/{domainId}/ssl/certificates` | read | R | ✓ |
+| v2 | `POST /domain/{domainId}/certificates` | write | – | ✓u |
+| v2 | `PUT /domain/{domainId}/certificates/{id}` | write | – | ✓u |
+| v2 | `DELETE /domain/{domainId}/certificates/{id}` | write | – | ✓u |
 
 ## Error pages
 

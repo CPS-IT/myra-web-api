@@ -23,6 +23,7 @@ use PHPUnit\Framework\TestCase;
  * and URLs replaced), a quiet domain for the empty answers, and two failures.
  */
 #[CoversClass(V2\Statistics::class)]
+#[UsesClass(V2\SslCertificates::class)]
 #[CoversClass(\Myracloud\WebApi\Model\Graph::class)]
 #[CoversClass(\Myracloud\WebApi\Model\StatisticTotals::class)]
 #[CoversClass(\Myracloud\WebApi\Model\UrlStatistic::class)]

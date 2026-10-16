@@ -33,4 +33,6 @@ interface Client
     public function ipRanges(): IpRanges;
 
     public function statistics(): Statistics;
+
+    public function sslCertificates(): SslCertificates;
 }

@@ -1588,5 +1588,75 @@
         "status": 403,
         "finding": "foreign-descendants: HTTP 403, empty body (this account)",
         "file": "v2-0157-v2-by-domain-052-domains-1000-foreign-descendants.json"
+    },
+    {
+        "case": "158",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/certificates/example.com/1",
+        "status": 200,
+        "finding": "v1 certificates of a domain: SslCertVO (subject, validity, fingerprint, serialNumber, subjectAlternatives, subdomains, intermediates, sslConfigurationName, managed, \u2026) \u2014 fingerprints/serials faked as hex pairs",
+        "file": "v1-0158-probe-en-rapi-certificates-example-com-1.json"
+    },
+    {
+        "case": "159",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/certificates/www.example.com/1",
+        "status": 200,
+        "finding": "v1 with a subdomain: the same 4 \u2014 certificates are per domain, not filtered by vhost",
+        "file": "v1-0159-probe-en-rapi-certificates-www-example-com-1.json"
+    },
+    {
+        "case": "160",
+        "apiVersion": "v1",
+        "auth": "HMAC",
+        "method": "GET",
+        "path": "/en/rapi/certificates/example.org/1",
+        "status": 200,
+        "finding": "a domain without certificates",
+        "file": "v1-0160-v1-by-domain-085-certificates-empty.json"
+    },
+    {
+        "case": "161",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/ssl/certificates",
+        "status": 200,
+        "finding": "v2: the same SslCertVOs as v1",
+        "file": "v2-0161-probe-domain-1000-ssl-certificates.json"
+    },
+    {
+        "case": "162",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/ssl/certificates?page=2&pageSize=2",
+        "status": 200,
+        "finding": "v2 pages by query",
+        "file": "v2-0162-probe-domain-1000-ssl-certificates-page-2-pagesize-2.json"
+    },
+    {
+        "case": "163",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/domain/1000/ssl/certificates/90001",
+        "status": 200,
+        "finding": "v2 get by id: one-element data",
+        "file": "v2-0163-probe-domain-1000-ssl-certificates-90001.json"
+    },
+    {
+        "case": "164",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/ssl-configurations",
+        "status": 200,
+        "finding": "Myra's SSL configurations (name, ciphers, tls13Ciphers, protocols; names and cipher lists redacted by the anonymiser)",
+        "file": "v2-0164-probe-ssl-configurations.json"
     }
 ]

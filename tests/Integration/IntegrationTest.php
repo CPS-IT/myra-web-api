@@ -122,6 +122,31 @@ final class IntegrationTest extends TestCase
     }
 
     /**
+     * Reads as captured; upload and update against the emulator's echo (unverified at Myra).
+     *
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testManagesSslCertificates(string $version, Closure $auth): void
+    {
+        $certificates = self::client($version, $auth())->sslCertificates();
+
+        self::assertCount(4, $certificates->list('example.com'));
+        self::assertSame([], $certificates->list('example.org'));
+        $created = $certificates->upload('example.com', new \Myracloud\WebApi\Model\SslCertificateUpload('CERT', 'KEY', ['www.example.com']));
+        self::assertSame(4711, $created->id());
+        self::assertArrayNotHasKey('key', $created->raw());
+        self::assertSame(['example.com'], $certificates->update('example.com', $created->withSubdomains(['example.com']))->subdomains());
+        if ($certificates instanceof V2\SslCertificates) {
+            self::assertSame(90001, $certificates->get('example.com', 90001)->id());
+            self::assertCount(4, $certificates->configurations());
+            $certificates->delete('example.com', $created);
+        }
+        self::assertAllAuthenticated();
+    }
+
+    /**
      * v2 only: subdomains (account and per domain, paged), a domain by id, its verification.
      *
      * @param Closure(): Authentication $auth

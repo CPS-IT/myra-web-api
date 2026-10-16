@@ -180,6 +180,13 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 155 | v2 | `GET /domains/1000` | 200 | a domain by id: DomainVO with permissions, label, verified, environment |
 | 156 | v2 | `GET /domains/1000/verification` | 200 | verification status: verified, recordNames, conflictingNames, foreignDescendantsExist |
 | 157 | v2 | `GET /domains/1000/foreign-descendants` | 403 | foreign-descendants: HTTP 403, empty body (this account) |
+| 158 | v1 | `GET /en/rapi/certificates/example.com/1` | 200 | v1 certificates of a domain: SslCertVO (subject, validity, fingerprint, serialNumber, subjectAlternatives, subdomains, intermediates, sslConfigurationName, managed, …) — fingerprints/serials faked as hex pairs |
+| 159 | v1 | `GET /en/rapi/certificates/www.example.com/1` | 200 | v1 with a subdomain: the same 4 — certificates are per domain, not filtered by vhost |
+| 160 | v1 | `GET /en/rapi/certificates/example.org/1` | 200 | a domain without certificates |
+| 161 | v2 | `GET /domain/1000/ssl/certificates` | 200 | v2: the same SslCertVOs as v1 |
+| 162 | v2 | `GET /domain/1000/ssl/certificates?page=2&pageSize=2` | 200 | v2 pages by query |
+| 163 | v2 | `GET /domain/1000/ssl/certificates/90001` | 200 | v2 get by id: one-element data |
+| 164 | v2 | `GET /ssl-configurations` | 200 | Myra's SSL configurations (name, ciphers, tls13Ciphers, protocols; names and cipher lists redacted by the anonymiser) |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.

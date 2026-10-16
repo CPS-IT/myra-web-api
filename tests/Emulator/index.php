@@ -27,6 +27,8 @@ declare(strict_types=1);
  * - maintenance: the account has none, so both vhosts answer the probe's captured list;
  * - DNS record writes are echoed in the captured shapes (stateless); the dedicated v2 load
  *   balancing PUT answers the captured HTTP 500;
+ * - SSL certificates: writes echoed without certificate, key and password (Myra never returns
+ *   them — manual); v2 lists of example.org are the empty v1 list;
  * - subdomains: the account list ignores paging (captured) and filters like Myra; a verification
  *   check answers 409 DOMAIN_VERIFICATION_ALREADY_VERIFIED (spec; the account's domains are verified);
  * - statistics: the captured answers whatever the query or period; v2 dashboard: example.org
@@ -216,6 +218,13 @@ final class Emulator
                 => Answer::page('v1/domains/list', 'list', (int) $m[1]),
             $this->method === 'POST' && $route === '/statistic/query'
                 => Answer::fixture('v1/statistics/query'),
+            preg_match('#^/certificates/([^/]+)(/(\d+))?$#', $route, $m) === 1 && isset(self::DOMAINS[rawurldecode($m[1])])
+                => match (true) {
+                    $this->method === 'GET' && isset($m[3]) => Answer::page(rawurldecode($m[1]) === 'example.com' ? 'v1/certificates/list' : 'v1/certificates/list-empty', 'list', (int) $m[3]),
+                    $this->method === 'PUT' && !isset($m[3]) => $this->certificate('targetObject', 4711),
+                    $this->method === 'POST' && !isset($m[3]) => $this->certificate('targetObject', null),
+                    default => self::notEmulated($this->method, $route),
+                },
             $this->method === 'GET' && $route === '/networks'
                 => Answer::page('v1/ip-ranges/list', 'list', $this->page()),
             $this->method === 'GET' && preg_match('#^/dnsRecords/([^/]+)/(\d+)$#', $route, $m) === 1
@@ -260,6 +269,21 @@ final class Emulator
                 => Answer::fixture('v2/statistics/query'),
             preg_match('#^/statistics/([a-z-]+)/\d+/\d+(/.*)?$#', $route, $m) === 1
                 => $this->statistics($m[1], $m[2] ?? ''),
+            $this->method === 'GET' && $route === '/ssl-configurations'
+                => Answer::page('v2/certificates/configurations', 'data', $page),
+            $this->method === 'GET' && preg_match('#^/domain/(\d+)/ssl/certificates(/\d+)?$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
+                => match (true) {
+                    isset($m[2]) => Answer::fixture('v2/certificates/get'),
+                    (int) $m[1] === 1000 => Answer::page('v2/certificates/list', 'data', $page),
+                    default => Answer::page('v1/certificates/list-empty', 'list', $page)->rename('list', 'data'),
+                },
+            preg_match('#^/domain/(\d+)/certificates(/(\d+))?$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
+                => match (true) {
+                    $this->method === 'POST' && !isset($m[3]) => $this->certificate('data', 4711, 201),
+                    $this->method === 'PUT' && isset($m[3]) => $this->certificate('data', (int) $m[3]),
+                    $this->method === 'DELETE' && isset($m[3]) => new Answer(204, null, ''),
+                    default => self::notEmulated($this->method, $route),
+                },
             $this->method === 'GET' && $route === '/subdomains'
                 => $this->subdomains(),
             $this->method === 'GET' && preg_match('#^/domain/(\d+)/subdomains$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
@@ -460,6 +484,21 @@ final class Emulator
         $answer = Answer::success($key, [$redirect]);
 
         return new Answer($status, $answer->contentType, $answer->body);
+    }
+
+    /**
+     * A certificate write echoed like the other writes, without what Myra never returns
+     * (certificate, key, password).
+     */
+    private function certificate(string $key, ?int $id, int $status = 200): Answer
+    {
+        $answer = $this->written('SslCertVO', $key, $id, $status);
+        $body = is_array($answer->body) ? $answer->body : [];
+        if (is_array($body[$key] ?? null) && is_array($body[$key][0] ?? null)) {
+            $body[$key][0] = array_diff_key($body[$key][0], ['cert' => true, 'key' => true, 'password' => true]);
+        }
+
+        return new Answer($answer->status, $answer->contentType, $body);
     }
 
     /**

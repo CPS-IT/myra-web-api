@@ -36,6 +36,7 @@ final readonly class Client implements Contract\Client
     private ErrorPages $errorPages;
     private IpRanges $ipRanges;
     private Statistics $statistics;
+    private SslCertificates $sslCertificates;
     private MaintenanceTemplates $maintenanceTemplates;
     private Subdomains $subdomains;
     private DomainVerifications $domainVerifications;
@@ -64,6 +65,7 @@ final readonly class Client implements Contract\Client
         $this->errorPages = new ErrorPages($transport, $this->domainIds);
         $this->ipRanges = new IpRanges($transport);
         $this->statistics = new Statistics($transport);
+        $this->sslCertificates = new SslCertificates($transport, $this->domainIds);
         $this->maintenanceTemplates = new MaintenanceTemplates($transport, $this->domainIds);
         $this->subdomains = new Subdomains($transport, $this->domainIds);
         $this->domainVerifications = new DomainVerifications($transport, $this->domainIds);
@@ -122,6 +124,11 @@ final readonly class Client implements Contract\Client
     public function statistics(): Statistics
     {
         return $this->statistics;
+    }
+
+    public function sslCertificates(): SslCertificates
+    {
+        return $this->sslCertificates;
     }
 
     /**

@@ -27,6 +27,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(V1\ErrorPages::class)]
 #[UsesClass(V1\IpRanges::class)]
 #[UsesClass(V1\Statistics::class)]
+#[UsesClass(V1\SslCertificates::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\HmacSignature::class)]
 #[UsesClass(\Myracloud\WebApi\Http\Transport::class)]
@@ -190,6 +191,7 @@ final class ClientTest extends TestCase
         self::assertSame($client->errorPages(), $client->errorPages());
         self::assertSame($client->ipRanges(), $client->ipRanges());
         self::assertSame($client->statistics(), $client->statistics());
+        self::assertSame($client->sslCertificates(), $client->sslCertificates());
     }
 
     private function client(): Client
