@@ -189,5 +189,6 @@ final class AnonymizerTest extends TestCase
     {
         self::assertSame([], $this->anonymizer->leaks('{"path":"/statistics/histogram/1792051200/1792058399/total-requests/hourly/0/1"}'));
         self::assertSame(['long base64'], $this->anonymizer->leaks('{"token":"' . str_repeat('aB3/', 10) . '"}'));
+        self::assertSame(['long base64'], $this->anonymizer->leaks('{"token":"' . str_repeat('zq7k', 11) . '"}'), 'lower case without slash: a token');
     }
 }

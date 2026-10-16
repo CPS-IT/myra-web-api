@@ -188,8 +188,9 @@ final class Anonymizer
         $checks = [
             'e-mail address' => '/[\w.+-]+@(?!example\.(com|org|net)\b)[\w-]+(\.[\w-]+)+/',
             'PEM block' => '/-----BEGIN /',
-            // with an upper-case letter or "+": a URL path of lower-case words and numbers is no base64
-            'long base64' => '#(?<![A-Za-z0-9+/])(?=[A-Za-z0-9+/]*[A-Z+])[A-Za-z0-9+/]{40,}={0,2}#',
+            // a run with "/" but neither upper case nor "+" is a URL path of lower-case words and
+            // numbers, no base64; a slash-free run (a token) always counts
+            'long base64' => '#(?<![A-Za-z0-9+/])(?:(?=[A-Za-z0-9+/]*[A-Z+])|(?![A-Za-z0-9+]*/))[A-Za-z0-9+/]{40,}={0,2}#',
             'long hex' => '/\b[0-9a-f]{32,}\b/i',
             'IPv4 outside documentation ranges' => '#\b(?!192\.0\.2\.|198\.51\.100\.|203\.0\.113\.)(\d{1,3}\.){3}\d{1,3}\b#',
             // hex groups with "::" or at least four colons (times like 12:00:00 have neither)
