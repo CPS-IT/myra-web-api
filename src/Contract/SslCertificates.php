@@ -44,6 +44,11 @@ interface SslCertificates
     /**
      * Changes the assigned subdomains and/or the intermediate chain of a certificate read before.
      *
+     * Not verified: whether Myra keeps the intermediate chain when an update leaves it out
+     * (the manual's example always sends it, and Myra never returns the PEMs to send back).
+     * If it drops it, a live certificate loses its chain — so pass the chain again with
+     * withIntermediates() when you change the subdomains.
+     *
      * @throws MyraException
      */
     public function update(string $domain, SslCertificate $certificate): SslCertificate;

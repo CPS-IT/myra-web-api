@@ -84,6 +84,9 @@ final readonly class SslCertificate
     }
 
     /**
+     * Send the intermediate chain along (withIntermediates()): whether Myra keeps it when an
+     * update leaves it out is not verified.
+     *
      * @param list<string> $subdomains the vhosts to assign it to (all of them, not a delta)
      */
     public function withSubdomains(array $subdomains): self
