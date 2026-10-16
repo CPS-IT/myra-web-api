@@ -134,6 +134,16 @@ final readonly class Answer
 
 final class Emulator
 {
+    /** Reads of users and organisation (any id) → their capture. */
+    private const USER_READS = [
+        '/user/me' => 'users/me', '/users' => 'users/list', '/users/{id}' => 'users/get',
+        '/user/{id}/groups' => 'users/groups-of-user', '/user/{id}/api-keys' => 'users/api-keys',
+        '/user/{id}/activities' => 'users/activities', '/user/{id}/permissions' => 'users/permissions-of-user',
+        '/user/permissions' => 'users/permissions', '/user/tokens' => 'users/tokens', '/user/groups' => 'users/groups',
+        '/user/groups/{id}' => 'users/group', '/user/group/{id}/users' => 'users/group-users',
+        '/user/group/{id}/permissions' => 'users/group-permissions', '/organization/contacts' => 'organization/contacts',
+        '/organization/contact-types' => 'organization/contact-types', '/organization/notes' => 'organization/notes',
+    ];
     /** The emulated account: domain name → id, as in the fixtures. */
     private const DOMAINS = ['example.com' => 1000, 'example.org' => 1140];
     /**
@@ -271,6 +281,8 @@ final class Emulator
                 => $this->statistics($m[1], $m[2] ?? ''),
             $this->method === 'GET' && preg_match('#^/waf/(conditions|conditions/matching-types|actions|actions/values|countries)$#', $route, $m) === 1
                 => Answer::fixture('v2/waf/' . ['conditions' => 'conditions', 'conditions/matching-types' => 'matching-types', 'actions' => 'actions', 'actions/values' => 'action-values', 'countries' => 'countries'][$m[1]]),
+            $this->method === 'GET' && ($fixture = self::USER_READS[preg_replace('#/\d+(?=/|$)#', '/{id}', $route) ?? ''] ?? null) !== null
+                => in_array($fixture, ['users/list', 'users/activities', 'users/permissions-of-user'], true) ? Answer::page('v2/' . $fixture, 'data', $page) : Answer::fixture('v2/' . $fixture),
             $this->method === 'GET' && $route === '/ssl-configurations'
                 => Answer::page('v2/certificates/configurations', 'data', $page),
             $this->method === 'GET' && preg_match('#^/domain/(\d+)/ssl/certificates(/\d+)?$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)

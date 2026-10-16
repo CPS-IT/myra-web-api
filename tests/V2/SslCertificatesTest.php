@@ -36,6 +36,8 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(V2\Subdomains::class)]
 #[UsesClass(V2\DomainVerifications::class)]
 #[UsesClass(V2\Waf::class)]
+#[UsesClass(V2\Users::class)]
+#[UsesClass(V2\Organization::class)]
 #[UsesClass(\Myracloud\WebApi\Model\Domain::class)]
 #[UsesClass(\Myracloud\WebApi\Model\SslConfiguration::class)]
 #[UsesClass(\Myracloud\WebApi\Auth\BearerToken::class)]

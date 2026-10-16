@@ -19,6 +19,8 @@ use PHPUnit\Framework\TestCase;
  * The WAF catalogue as captured (labels redacted by the anonymiser).
  */
 #[CoversClass(V2\Waf::class)]
+#[UsesClass(V2\Users::class)]
+#[UsesClass(V2\Organization::class)]
 #[CoversClass(WafCondition::class)]
 #[CoversClass(WafAction::class)]
 #[CoversClass(Country::class)]

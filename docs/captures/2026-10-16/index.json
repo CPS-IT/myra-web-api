@@ -1708,5 +1708,165 @@
         "status": 200,
         "finding": "250 countries in ONE answer although pageSize says 50 (unpaged like the account's subdomains); names redacted",
         "file": "v2-0169-waf-waf-countries.json"
+    },
+    {
+        "case": "170",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/user/me",
+        "status": 200,
+        "finding": "the token's own user: UserExtendedVO (sessions with IP/user agent, rootGroupRoles); names redacted, e-mails userN@example.com",
+        "file": "v2-0170-probe-user-me.json"
+    },
+    {
+        "case": "171",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/users",
+        "status": 200,
+        "finding": "the organisation's users: UserVO",
+        "file": "v2-0171-probe-users.json"
+    },
+    {
+        "case": "172",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/users/90003",
+        "status": 200,
+        "finding": "a user by id: one-element data",
+        "file": "v2-0172-probe-users-90003.json"
+    },
+    {
+        "case": "173",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/user/90003/groups",
+        "status": 200,
+        "finding": "the groups of a user: GroupVO (roles, membersCount, type)",
+        "file": "v2-0173-probe-user-90003-groups.json"
+    },
+    {
+        "case": "174",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/user/90003/api-keys",
+        "status": 200,
+        "finding": "the API keys of a user: ApiKeyVO with the public key only (no secret); key and name redacted",
+        "file": "v2-0174-probe-user-90003-api-keys.json"
+    },
+    {
+        "case": "175",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/user/90003/activities",
+        "status": 200,
+        "finding": "a user's activities (logins): paged (176 entries, 50 per page); geo coordinates zeroed, browser versions came out as documentation IPs",
+        "file": "v2-0175-probe-user-90003-activities.json"
+    },
+    {
+        "case": "176",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/user/90003/permissions",
+        "status": 200,
+        "finding": "a user's permissions: objectType (Domain, DnsRedirect, \u2026), objectPermissionType, objectInstance, action",
+        "file": "v2-0176-probe-user-90003-permissions.json"
+    },
+    {
+        "case": "177",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/user/permissions",
+        "status": 200,
+        "finding": "the token user's permissions: UNPAGED (pageSize = count = 94)",
+        "file": "v2-0177-probe-user-permissions.json"
+    },
+    {
+        "case": "178",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/user/tokens",
+        "status": 200,
+        "finding": "API tokens: TokenVO without the token value (name, enabled, expiryDate, lastUsedDate)",
+        "file": "v2-0178-probe-user-tokens.json"
+    },
+    {
+        "case": "179",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/user/groups",
+        "status": 200,
+        "finding": "the organisation's groups",
+        "file": "v2-0179-probe-user-groups.json"
+    },
+    {
+        "case": "180",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/user/groups/90001",
+        "status": 200,
+        "finding": "a group by id (roles empty here, filled in the list)",
+        "file": "v2-0180-probe-user-groups-90001.json"
+    },
+    {
+        "case": "181",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/user/group/90001/users",
+        "status": 200,
+        "finding": "the members of a group",
+        "file": "v2-0181-probe-user-group-90001-users.json"
+    },
+    {
+        "case": "182",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/user/group/90001/permissions",
+        "status": 200,
+        "finding": "the permissions of a group",
+        "file": "v2-0182-probe-user-group-90001-permissions.json"
+    },
+    {
+        "case": "183",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/organization/contacts",
+        "status": 200,
+        "finding": "organisation contacts: OrganizationContactVO (types, priorities, reminders); names and phone redacted",
+        "file": "v2-0183-probe-organization-contacts.json"
+    },
+    {
+        "case": "184",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/organization/contact-types",
+        "status": 200,
+        "finding": "contact types: key + label (no objectType)",
+        "file": "v2-0184-probe-organization-contact-types.json"
+    },
+    {
+        "case": "185",
+        "apiVersion": "v2",
+        "auth": "Bearer",
+        "method": "GET",
+        "path": "/organization/notes",
+        "status": 200,
+        "finding": "organisation notes: one OrganizationNoteVO without fields (none set)",
+        "file": "v2-0185-probe-organization-notes.json"
     }
 ]

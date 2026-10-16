@@ -41,6 +41,8 @@ final readonly class Client implements Contract\Client
     private Subdomains $subdomains;
     private DomainVerifications $domainVerifications;
     private Waf $waf;
+    private Users $users;
+    private Organization $organization;
 
     /**
      * @param string $baseUri e.g. of a local emulator
@@ -71,6 +73,8 @@ final readonly class Client implements Contract\Client
         $this->subdomains = new Subdomains($transport, $this->domainIds);
         $this->domainVerifications = new DomainVerifications($transport, $this->domainIds);
         $this->waf = new Waf($transport);
+        $this->users = new Users($transport);
+        $this->organization = new Organization($transport);
     }
 
     public function domains(): Domains
@@ -163,6 +167,22 @@ final readonly class Client implements Contract\Client
     public function waf(): Waf
     {
         return $this->waf;
+    }
+
+    /**
+     * Users, groups, permissions, API keys and tokens (v2 only).
+     */
+    public function users(): Users
+    {
+        return $this->users;
+    }
+
+    /**
+     * The organisation's contacts and notes (v2 only).
+     */
+    public function organization(): Organization
+    {
+        return $this->organization;
     }
 
     /**

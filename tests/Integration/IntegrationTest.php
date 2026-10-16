@@ -168,6 +168,14 @@ final class IntegrationTest extends TestCase
         self::assertCount(250, $client->waf()->countries());
         self::assertArrayHasKey('default', $client->waf()->matchingTypes());
         self::assertArrayHasKey('customKey', $client->waf()->actionValues());
+        $users = $client->users();
+        self::assertSame('user1@example.com', $users->me()->login());
+        self::assertCount(6, $users->list());
+        self::assertCount(43, $users->permissions($users->me()->id()));
+        self::assertSame([50, 2], [$users->activities(90003, 2)->total(), count($users->activities(90003, 2)->items())]); // the emulator pages the 50 captured entries
+        self::assertCount(1, $users->tokens());
+        self::assertCount(5, $users->groupMembers($users->groups()[0]->id()));
+        self::assertCount(2, $client->organization()->contacts());
         try {
             $client->domainVerifications()->check('example.com');
             self::fail('No exception thrown.');

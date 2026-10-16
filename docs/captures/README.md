@@ -192,6 +192,22 @@ Bearer token for v2. Cache clears used non-existent paths (`/__probe__/…`, not
 | 167 | v2 | `GET /waf/actions` | 200 | WAF action catalogue: WafActionVO name, type, availablePhases; forceCustomValues is an int here (bool in conditions) |
 | 168 | v2 | `GET /waf/actions/values` | 200 | allowed values per action type: {customKey: type → value → label, requiresValue: type → value → bool} |
 | 169 | v2 | `GET /waf/countries` | 200 | 250 countries in ONE answer although pageSize says 50 (unpaged like the account's subdomains); names redacted |
+| 170 | v2 | `GET /user/me` | 200 | the token's own user: UserExtendedVO (sessions with IP/user agent, rootGroupRoles); names redacted, e-mails userN@example.com |
+| 171 | v2 | `GET /users` | 200 | the organisation's users: UserVO |
+| 172 | v2 | `GET /users/90003` | 200 | a user by id: one-element data |
+| 173 | v2 | `GET /user/90003/groups` | 200 | the groups of a user: GroupVO (roles, membersCount, type) |
+| 174 | v2 | `GET /user/90003/api-keys` | 200 | the API keys of a user: ApiKeyVO with the public key only (no secret); key and name redacted |
+| 175 | v2 | `GET /user/90003/activities` | 200 | a user's activities (logins): paged (176 entries, 50 per page); geo coordinates zeroed, browser versions came out as documentation IPs |
+| 176 | v2 | `GET /user/90003/permissions` | 200 | a user's permissions: objectType (Domain, DnsRedirect, …), objectPermissionType, objectInstance, action |
+| 177 | v2 | `GET /user/permissions` | 200 | the token user's permissions: UNPAGED (pageSize = count = 94) |
+| 178 | v2 | `GET /user/tokens` | 200 | API tokens: TokenVO without the token value (name, enabled, expiryDate, lastUsedDate) |
+| 179 | v2 | `GET /user/groups` | 200 | the organisation's groups |
+| 180 | v2 | `GET /user/groups/90001` | 200 | a group by id (roles empty here, filled in the list) |
+| 181 | v2 | `GET /user/group/90001/users` | 200 | the members of a group |
+| 182 | v2 | `GET /user/group/90001/permissions` | 200 | the permissions of a group |
+| 183 | v2 | `GET /organization/contacts` | 200 | organisation contacts: OrganizationContactVO (types, priorities, reminders); names and phone redacted |
+| 184 | v2 | `GET /organization/contact-types` | 200 | contact types: key + label (no objectType) |
+| 185 | v2 | `GET /organization/notes` | 200 | organisation notes: one OrganizationNoteVO without fields (none set) |
 
 **Every failure is HTTP 403**, so the body decides: envelope with `error: true` → rejected
 request (violations); no envelope → access denied.
