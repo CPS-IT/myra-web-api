@@ -397,7 +397,7 @@
         "path": "/en/rapi/ipfilter/example.com/1",
         "status": 200,
         "finding": "IP filter of the apex: IpFilterVO, per vhost like redirects",
-        "file": "v1-0038-v1 by domain-en-rapi-ipfilter-example-com-1.json"
+        "file": "v1-0038-v1-by-domain-en-rapi-ipfilter-example-com-1.json"
     },
     {
         "case": "39",
@@ -407,7 +407,7 @@
         "path": "/en/rapi/ipfilter/www.example.com/1",
         "status": 200,
         "finding": "a vhost without entries: empty list",
-        "file": "v1-0039-v1 by subdomain-en-rapi-ipfilter-www-example-com-1.json"
+        "file": "v1-0039-v1-by-subdomain-en-rapi-ipfilter-www-example-com-1.json"
     },
     {
         "case": "40",
@@ -417,7 +417,7 @@
         "path": "/domain/1000/ip-filters/example.com",
         "status": 200,
         "finding": "same IpFilterVO as v1",
-        "file": "v2-0040-v2 by vhost-domain-1000-ip-filters-example-com.json"
+        "file": "v2-0040-v2-by-vhost-domain-1000-ip-filters-example-com.json"
     },
     {
         "case": "41",
@@ -427,7 +427,7 @@
         "path": "/domain/1000/ip-filters/example.com/90393",
         "status": 200,
         "finding": "get by id: one-element data list",
-        "file": "v2-0041-v2 by vhost-domain-1000-ip-filters-example-com-90393.json"
+        "file": "v2-0041-v2-by-vhost-domain-1000-ip-filters-example-com-90393.json"
     },
     {
         "case": "42",
@@ -437,7 +437,7 @@
         "path": "/domain/1000/ip-filters/example.com/export",
         "status": 200,
         "finding": "export: text/csv with the columns IP, Expires on, Comments",
-        "file": "v2-0042-v2 by vhost-domain-1000-ip-filters-example-com-export.json"
+        "file": "v2-0042-v2-by-vhost-domain-1000-ip-filters-example-com-export.json"
     },
     {
         "case": "43",
@@ -447,7 +447,7 @@
         "path": "/domain/1140/ip-filters/example.org",
         "status": 403,
         "finding": "a vHostName that is no vhost: 403 'The entity does not exist.'",
-        "file": "v2-0043-v2 by vhost-domain-1140-ip-filters-example-org.json"
+        "file": "v2-0043-v2-by-vhost-domain-1140-ip-filters-example-org.json"
     },
     {
         "case": "44",
@@ -577,7 +577,7 @@
         "path": "/en/rapi/cacheSettings/example.com/1",
         "status": 200,
         "finding": "cache settings of the apex: CacheSettingVO without a subdomain field",
-        "file": "v1-0056-v1 by domain-en-rapi-cacheSettings-example-com-1.json"
+        "file": "v1-0056-v1-by-domain-en-rapi-cacheSettings-example-com-1.json"
     },
     {
         "case": "57",
@@ -587,7 +587,7 @@
         "path": "/en/rapi/cacheSettings/www.example.com/1",
         "status": 200,
         "finding": "a vhost without rules: empty list",
-        "file": "v1-0057-v1 by subdomain-en-rapi-cacheSettings-www-example-com-1.json"
+        "file": "v1-0057-v1-by-subdomain-en-rapi-cacheSettings-www-example-com-1.json"
     },
     {
         "case": "58",
@@ -597,7 +597,7 @@
         "path": "/en/rapi/cacheSettings/www.example.org/1",
         "status": 500,
         "finding": "v1, a subdomain that is no vhost: HTTP 500, empty HTML \u2014 no envelope",
-        "file": "v1-0058-v1 by subdomain-en-rapi-cacheSettings-www-example-org-1.json"
+        "file": "v1-0058-v1-by-subdomain-en-rapi-cacheSettings-www-example-org-1.json"
     },
     {
         "case": "59",
@@ -607,7 +607,7 @@
         "path": "/domain/1000/example.com/cache-settings",
         "status": 200,
         "finding": "same CacheSettingVO as v1; path /domain/{id}/{vHostName}/cache-settings (vhost before area)",
-        "file": "v2-0059-v2 by vhost-domain-1000-example-com-cache-settings.json"
+        "file": "v2-0059-v2-by-vhost-domain-1000-example-com-cache-settings.json"
     },
     {
         "case": "60",
@@ -617,7 +617,7 @@
         "path": "/domain/1140/example.org/cache-settings",
         "status": 403,
         "finding": "a vHostName that is no vhost: 403 'The entity does not exist.'",
-        "file": "v2-0060-v2 by vhost-domain-1140-example-org-cache-settings.json"
+        "file": "v2-0060-v2-by-vhost-domain-1140-example-org-cache-settings.json"
     },
     {
         "case": "61",
@@ -707,7 +707,7 @@
         "path": "/en/rapi/subdomainSetting/example.com",
         "status": 200,
         "finding": "subdomain settings: targetObject = 5 inheritance layers, domain = the vhost's own, parent = inherited (the manual's structure is outdated)",
-        "file": "v1-0069-v1 by domain-en-rapi-subdomainSetting-example-com.json"
+        "file": "v1-0069-v1-by-domain-en-rapi-subdomainSetting-example-com.json"
     },
     {
         "case": "70",
@@ -717,7 +717,7 @@
         "path": "/en/rapi/subdomainSetting/www.example.com",
         "status": 200,
         "finding": "a vhost with own settings: domain holds them, the last layer equals domain",
-        "file": "v1-0070-v1 by subdomain-en-rapi-subdomainSetting-www-example-com.json"
+        "file": "v1-0070-v1-by-subdomain-en-rapi-subdomainSetting-www-example-com.json"
     },
     {
         "case": "71",
@@ -727,7 +727,7 @@
         "path": "/en/rapi/subdomainSetting/example.com?flat=",
         "status": 200,
         "finding": "?flat: the merged settings as a plain map, no envelope; v1 sends numbers as strings",
-        "file": "v1-0071-v1 by domain-en-rapi-subdomainSetting-example-com-flat.json"
+        "file": "v1-0071-v1-by-domain-en-rapi-subdomainSetting-example-com-flat.json"
     },
     {
         "case": "72",
@@ -737,7 +737,7 @@
         "path": "/en/rapi/subdomainSetting/www.example.org",
         "status": 500,
         "finding": "v1, a subdomain that is no vhost: HTTP 500, empty HTML",
-        "file": "v1-0072-v1 by subdomain-en-rapi-subdomainSetting-www-example-org.json"
+        "file": "v1-0072-v1-by-subdomain-en-rapi-subdomainSetting-www-example-org.json"
     },
     {
         "case": "73",
@@ -747,7 +747,7 @@
         "path": "/domain/1000/example.com/settings",
         "status": 200,
         "finding": "v2 GET answers in targetObject like v1 (not data)",
-        "file": "v2-0073-v2 by vhost-domain-1000-example-com-settings.json"
+        "file": "v2-0073-v2-by-vhost-domain-1000-example-com-settings.json"
     },
     {
         "case": "74",
@@ -757,7 +757,7 @@
         "path": "/domain/1140/example.org/settings",
         "status": 403,
         "finding": "a vHostName that is no vhost: 403 'The entity does not exist.'",
-        "file": "v2-0074-v2 by vhost-domain-1140-example-org-settings.json"
+        "file": "v2-0074-v2-by-vhost-domain-1140-example-org-settings.json"
     },
     {
         "case": "75",
@@ -827,7 +827,7 @@
         "path": "/en/rapi/dnsRecords/example.com/1?loadbalancer=true&recordTypes=A,AAAA,CNAME",
         "status": 200,
         "finding": "load balancing in v1: the DNS list with ?loadbalancer=true&recordTypes=A,AAAA,CNAME \u2014 records with upstreamOptions",
-        "file": "v1-0081-v1 by domain-en-rapi-dnsRecords-example-com-1-loadbalancer-true-recordTypes-A-AAAA-CNAME.json"
+        "file": "v1-0081-v1-by-domain-en-rapi-dnsRecords-example-com-1-loadbalancer-true-recordTypes-A-AAAA-CNAME.json"
     },
     {
         "case": "82",
@@ -837,7 +837,7 @@
         "path": "/domain/1000/load-balancing",
         "status": 200,
         "finding": "load balancing in v2: /domain/{id}/load-balancing, the same records",
-        "file": "v2-0082-v2 by domain-domain-1000-load-balancing.json"
+        "file": "v2-0082-v2-by-domain-domain-1000-load-balancing.json"
     },
     {
         "case": "83",
@@ -847,7 +847,7 @@
         "path": "/domain/1000/dns-records/1021",
         "status": 200,
         "finding": "get by id: one-element data list",
-        "file": "v2-0083-DNS records-domain-1000-dns-records-1021.json"
+        "file": "v2-0083-DNS-records-domain-1000-dns-records-1021.json"
     },
     {
         "case": "84",
@@ -857,7 +857,7 @@
         "path": "/domain/1000/vhost/1007/dns-records",
         "status": 200,
         "finding": "the records of one vhost, by its v2 vhostId",
-        "file": "v2-0084-DNS records-domain-1000-vhost-1007-dns-records.json"
+        "file": "v2-0084-DNS-records-domain-1000-vhost-1007-dns-records.json"
     },
     {
         "case": "85",
@@ -1157,7 +1157,7 @@
         "path": "/en/rapi/errorpages/example.com/1",
         "status": 200,
         "finding": "v1 lists error pages grouped by subdomain ({subDomainName, error: {code: ErrorPageVO}}), without content, pageSize 10",
-        "file": "v1-0114-Error pages-en-rapi-errorpages-example-com-1.json"
+        "file": "v1-0114-Error-pages-en-rapi-errorpages-example-com-1.json"
     },
     {
         "case": "115",
@@ -1167,7 +1167,7 @@
         "path": "/domain/1000/errorpages",
         "status": 200,
         "finding": "v2 lists them flat \u2014 UNPAGED: page 0, pageSize 10^16 (a naive 'next page' loop never ends; it did)",
-        "file": "v2-0115-v2 by domain-domain-1000-errorpages.json"
+        "file": "v2-0115-v2-by-domain-domain-1000-errorpages.json"
     },
     {
         "case": "116",
@@ -1177,7 +1177,7 @@
         "path": "/domain/1000/errorpages-grouped",
         "status": 200,
         "finding": "errorpages-grouped: data keyed by subdomain",
-        "file": "v2-0116-v2 by domain-domain-1000-errorpages-grouped.json"
+        "file": "v2-0116-v2-by-domain-domain-1000-errorpages-grouped.json"
     },
     {
         "case": "117",
@@ -1187,7 +1187,7 @@
         "path": "/domain/1000/errorpages/90400",
         "status": 200,
         "finding": "get by id: with content",
-        "file": "v2-0117-v2 by domain-domain-1000-errorpages-90400.json"
+        "file": "v2-0117-v2-by-domain-domain-1000-errorpages-90400.json"
     },
     {
         "case": "118",
