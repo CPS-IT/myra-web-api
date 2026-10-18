@@ -477,6 +477,41 @@ final class IntegrationTest extends TestCase
     }
 
     /**
+     * A domain set up through the API, as in a fresh account: kept by the emulator, with its
+     * DNS records, and cleared within its zone only.
+     *
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('v2Clients')]
+    public function testKeepsACreatedDomainWithItsDnsRecords(Closure $auth): void
+    {
+        $created = self::client('v2', $auth())->domains()->create('example.net');
+        $client = self::client('v2', $auth());
+        $record = $client->dnsRecords()->create('example.net', new DnsRecord('www.example.net', 'A', '192.0.2.20', active: true));
+
+        self::assertSame([4711, 4712], [$created->id(), $record->id()]);
+        self::assertSame(['example.com', 'example.org', 'example.net'], array_map(static fn(Domain $d): string => $d->name(), $client->domains()->list()));
+        self::assertSame([['www.example.net', true]], array_map(static fn(DnsRecord $r): array => [$r->name(), $r->isActive()], $client->dnsRecords()->list('example.net')));
+        self::assertSame('www.example.net', $client->cacheClear()->clear('example.net', 'www.example.net', '/')[0]->fqdn());
+
+        foreach ([
+            'host outside the zone' => static fn() => $client->cacheClear()->clear('example.net', 'www.example.com', '/'),
+            'record outside the zone' => static fn() => $client->dnsRecords()->create('example.net', new DnsRecord('www.example.com', 'A', '192.0.2.21')),
+            'domain exists' => static fn() => $client->domains()->create('example.net'),
+        ] as $case => $rejected) {
+            try {
+                $rejected();
+                self::fail('No exception thrown: ' . $case);
+            } catch (RequestRejectedException) {
+            }
+        }
+
+        $client->domains()->delete($created);
+        $this->expectException(DomainNotFoundException::class);
+        self::client('v2', $auth())->dnsRecords()->list('example.net');
+    }
+
+    /**
      * @return iterable<string, array{'v1'|'v2', Authentication, string}>
      */
     public static function wrongCredentials(): iterable

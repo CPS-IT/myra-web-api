@@ -38,6 +38,12 @@ declare(strict_types=1);
  *   answers the quiet domain's captures, histogram charts other than total-* are unknown;
  * - subdomain settings: v2 settings of www.example.com are the v1 capture, `?flat` answers
  *   the apex (v1) or the probed vhost (v2) capture whatever the vhost; POST is echoed.
+ * - domains created with v2 (POST /domains) are kept, with the DNS records created in them,
+ *   in the state file: they appear in the domain list after the captured ones and in their
+ *   DNS record list, and take cache clears — the zone check as for the captured domains.
+ *   Ids count from 4711. Created objects take the captured shape of the first list entry.
+ *   A name that exists, or a record outside its domain, is rejected with a violation (spec,
+ *   not captured). Everything else of a created domain is not emulated; v1 does not see them.
  *
  * Authentication is checked independently of the package's own code: HMAC recomputed
  * after the v2 spec (docs/v2/openapi.json, info.description §2.1.2), or a Bearer token.
@@ -48,6 +54,7 @@ declare(strict_types=1);
  *   MYRA_EMULATOR_TOKEN                        Bearer token (test-token)
  *   MYRA_EMULATOR_PAGE_SIZE                    items per page (50, like Myra)
  *   MYRA_EMULATOR_LOG                          JSON-lines call log (sys_get_temp_dir()/myra-emulator.jsonl)
+ *   MYRA_EMULATOR_STATE                        created domains and DNS records (sys_get_temp_dir()/myra-emulator-state.json)
  *
  * Control (not logged): GET /_emulator/calls, POST /_emulator/reset.
  */
@@ -94,11 +101,14 @@ final readonly class Answer
     /**
      * The fixture's list, cut to one page.
      */
-    public static function page(string $name, string $key, int $page): self
+    /**
+     * @param list<array<string, mixed>> $more items after the fixture's (created objects)
+     */
+    public static function page(string $name, string $key, int $page, array $more = []): self
     {
         $answer = self::fixture($name);
         $body = is_array($answer->body) ? $answer->body : [];
-        $items = is_array($body[$key] ?? null) ? array_values($body[$key]) : [];
+        $items = [...(is_array($body[$key] ?? null) ? array_values($body[$key]) : []), ...$more];
         $size = max(1, (int) Emulator::env('MYRA_EMULATOR_PAGE_SIZE', '50'));
         $body[$key] = array_slice($items, ($page - 1) * $size, $size);
         $body['page'] = $page;
@@ -281,7 +291,7 @@ final class Emulator
 
         return match (true) {
             $this->method === 'GET' && $route === '/domains'
-                => Answer::page('v2/domains/list', 'data', $page),
+                => Answer::page('v2/domains/list', 'data', $page, array_column($this->state()['domains'], 'domain')),
             $this->method === 'POST' && $route === '/statistic/query'
                 => Answer::fixture('v2/statistics/query'),
             preg_match('#^/statistics/([a-z-]+)/\d+/\d+(/.*)?$#', $route, $m) === 1
@@ -293,9 +303,9 @@ final class Emulator
             $this->method !== 'GET' && preg_match('#^/(users|user|organization)(/|$)#', $route) === 1
                 => $this->userWrite($route),
             $this->method === 'POST' && $route === '/domains'
-                => $this->written('DomainVO', 'data', null, 201),
+                => $this->createDomain(),
             preg_match('#^/domains/(\d+)$#', $route, $m) === 1 && ($this->method === 'DELETE' || ($this->method === 'PUT' && in_array((int) $m[1], self::DOMAINS, true)))
-                => $this->method === 'DELETE' ? new Answer(204, null, '') : $this->domainWritten('data', (int) $m[1]),
+                => $this->method === 'DELETE' ? $this->deleteDomain((int) $m[1]) : $this->domainWritten('data', (int) $m[1]),
             $this->method === 'GET' && preg_match('#^/domains/(\d+)/(bind|bind-raw)/(Myra|Origin)$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
                 => Answer::fixture('v2/bind/' . ($m[2] === 'bind' ? 'zone-' : 'file-') . strtolower($m[3])),
             $this->method === 'GET' && $route === '/ssl-configurations'
@@ -360,15 +370,21 @@ final class Emulator
             return Answer::fixture('v2/errors/domain-name-instead-of-id');
         }
         $name = array_search((int) $id, self::DOMAINS, true);
-        if ($name === false) {
+        $created = $name === false ? $this->createdDomain((int) $id) : null;
+        $name = $created['domain']['name'] ?? $name;
+        if (!is_string($name)) {
             return Answer::fixture('v2/errors/unknown-domain-id');
         }
 
         return match (true) {
-            $this->method === 'GET' && $area === 'dns-records' => $name === 'example.com'
-                ? Answer::page('v2/dns-records/list', 'data', $page)
-                : Answer::page('v2/domains/page-2', 'data', 1),
-            $this->method === 'POST' && $area === 'dns-records' => $this->written('DnsRecordVO', 'data', null, 201),
+            $this->method === 'GET' && $area === 'dns-records' => match (true) {
+                $created !== null => Answer::page('v2/domains/page-2', 'data', $page, $created['records']),
+                $name === 'example.com' => Answer::page('v2/dns-records/list', 'data', $page),
+                default => Answer::page('v2/domains/page-2', 'data', 1),
+            },
+            $this->method === 'POST' && $area === 'dns-records' => $created !== null
+                ? $this->createDnsRecord($name)
+                : $this->written('DnsRecordVO', 'data', null, 201),
             $this->method === 'PUT' && $area === 'cache-clear' => $this->cacheClear('v2', $name, 'data'),
             default => self::notEmulated($this->method, '/domain/' . $id . '/' . $area),
         };
@@ -494,6 +510,188 @@ final class Emulator
         }
 
         return $csv;
+    }
+
+    /**
+     * A v2 domain created and kept: the captured DomainVO with the sent name and settings.
+     */
+    private function createDomain(): Answer
+    {
+        $data = json_decode($this->body, true);
+        $name = is_array($data) && is_string($data['name'] ?? null) ? strtolower(rtrim(trim($data['name']), '.')) : '';
+        if ($name === '') {
+            return Answer::fixture('v2/errors/malformed-body');
+        }
+        $state = $this->state();
+        if (isset(self::DOMAINS[$name]) || isset($state['domains'][$name])) {
+            return self::violation('name', 'The domain already exists.');
+        }
+        $domain = array_merge(self::captured('v2/domains/list'), self::stringKeys(array_intersect_key($data, ['autoUpdate' => true, 'autoDns' => true])), [
+            'id' => self::nextId($state),
+            'name' => $name,
+            'label' => $name,
+            'created' => '2026-10-16T12:00:00+0200',
+            'modified' => '2026-10-16T12:00:00+0200',
+        ]);
+        $state['domains'][$name] = ['domain' => $domain, 'records' => []];
+        $this->saveState($state);
+
+        $answer = Answer::success('data', [$domain]);
+
+        return new Answer(201, $answer->contentType, $answer->body);
+    }
+
+    private function deleteDomain(int $id): Answer
+    {
+        $state = $this->state();
+        foreach ($state['domains'] as $name => $created) {
+            if ($created['domain']['id'] === $id) {
+                unset($state['domains'][$name]);
+                $this->saveState($state);
+            }
+        }
+
+        return new Answer(204, null, '');
+    }
+
+    /**
+     * A DNS record kept in a created domain: the captured DnsRecordVO with the sent fields.
+     */
+    private function createDnsRecord(string $domain): Answer
+    {
+        $data = json_decode($this->body, true);
+        $name = is_array($data) && is_string($data['name'] ?? null) ? strtolower(rtrim($data['name'], '.')) : '';
+        if ($name === '') {
+            return Answer::fixture('v2/errors/malformed-body');
+        }
+        if ($name !== $domain && !str_ends_with($name, '.' . $domain)) {
+            return self::violation('name', 'The DNS record is not part of the domain.');
+        }
+        $state = $this->state();
+        $created = $state['domains'][$domain] ?? null;
+        if ($created === null) {
+            return Answer::fixture('v2/errors/unknown-domain-id');
+        }
+        $record = array_merge(self::captured('v2/dns-records/list'), self::stringKeys(array_diff_key($data, ['id' => true, 'modified' => true, 'created' => true])), [
+            'id' => self::nextId($state),
+            'name' => $name,
+            'created' => '2026-10-16T12:00:00+0200',
+            'modified' => '2026-10-16T12:00:00+0200',
+        ]);
+        $created['records'][] = $record;
+        $state['domains'][$domain] = $created;
+        $this->saveState($state);
+
+        $answer = Answer::success('data', [$record]);
+
+        return new Answer(201, $answer->contentType, $answer->body);
+    }
+
+    /**
+     * @return array{domain: array<string, mixed>, records: list<array<string, mixed>>}|null
+     */
+    private function createdDomain(int $id): ?array
+    {
+        foreach ($this->state()['domains'] as $created) {
+            if ($created['domain']['id'] === $id) {
+                return $created;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{domains: array<string, array{domain: array<string, mixed>, records: list<array<string, mixed>>}>}
+     */
+    private function state(): array
+    {
+        $file = self::stateFile();
+        $json = is_file($file) ? file_get_contents($file) : false;
+        $state = $json === false || $json === '' ? null : json_decode($json, true);
+
+        // Rebuilt, not trusted: a broken or foreign file is an empty state.
+        $domains = [];
+        foreach (is_array($state) && is_array($state['domains'] ?? null) ? $state['domains'] : [] as $name => $created) {
+            if (is_string($name) && is_array($created) && is_array($created['domain'] ?? null) && is_array($created['records'] ?? null)) {
+                $records = [];
+                foreach ($created['records'] as $record) {
+                    if (is_array($record)) {
+                        $records[] = self::stringKeys($record);
+                    }
+                }
+                $domains[$name] = ['domain' => self::stringKeys($created['domain']), 'records' => $records];
+            }
+        }
+
+        return ['domains' => $domains];
+    }
+
+    /**
+     * @param array{domains: array<string, array{domain: array<string, mixed>, records: list<array<string, mixed>>}>} $state
+     */
+    private function saveState(array $state): void
+    {
+        file_put_contents(self::stateFile(), json_encode($state, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
+    }
+
+    public static function stateFile(): string
+    {
+        return self::env('MYRA_EMULATOR_STATE', sys_get_temp_dir() . '/myra-emulator-state.json');
+    }
+
+    /**
+     * One id for domains and records, from 4711: after the highest one created.
+     *
+     * @param array{domains: array<string, array{domain: array<string, mixed>, records: list<array<string, mixed>>}>} $state
+     */
+    private static function nextId(array $state): int
+    {
+        $ids = [4710];
+        foreach ($state['domains'] as $created) {
+            foreach ([$created['domain'], ...$created['records']] as $object) {
+                if (is_int($object['id'] ?? null)) {
+                    $ids[] = $object['id'];
+                }
+            }
+        }
+
+        return max($ids) + 1;
+    }
+
+    /**
+     * The first entry of a captured list, as the shape of a created object.
+     *
+     * @return array<string, mixed>
+     */
+    private static function captured(string $fixture): array
+    {
+        $body = Answer::fixture($fixture)->body;
+        $list = is_array($body) ? ($body['data'] ?? null) : null;
+        $first = is_array($list) && is_array($list[0] ?? null) ? $list[0] : [];
+
+        return array_diff_key(self::stringKeys($first), ['id' => true, 'name' => true]);
+    }
+
+    /**
+     * @param array<mixed> $object
+     * @return array<string, mixed>
+     */
+    private static function stringKeys(array $object): array
+    {
+        $typed = [];
+        foreach ($object as $key => $value) {
+            if (is_string($key)) {
+                $typed[$key] = $value;
+            }
+        }
+
+        return $typed;
+    }
+
+    private static function violation(string $propertyPath, string $message): Answer
+    {
+        return new Answer(400, 'application/json', ['error' => true, 'violationList' => [['propertyPath' => $propertyPath, 'message' => $message]], 'warningList' => []]);
     }
 
     /**

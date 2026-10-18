@@ -15,6 +15,7 @@ final class EmulatorServer
     private $process;
     private readonly string $baseUri;
     private readonly string $log;
+    private readonly string $state;
 
     /**
      * @param array<string, string> $env e.g. MYRA_EMULATOR_PAGE_SIZE
@@ -25,13 +26,15 @@ final class EmulatorServer
         $this->baseUri = 'http://127.0.0.1:' . $port;
         $log = tempnam(sys_get_temp_dir(), 'myra-emulator-');
         $this->log = $log !== false ? $log : throw new RuntimeException('No temp file for the call log.');
+        // Created domains and DNS records; reset() forgets them, like the calls.
+        $this->state = $this->log . '.state.json';
 
         $process = proc_open(
             [PHP_BINARY, '-S', '127.0.0.1:' . $port, __DIR__ . '/../Emulator/index.php'],
             [0 => ['pipe', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']],
             $pipes,
             null,
-            ['MYRA_EMULATOR_LOG' => $this->log] + $env + self::environment(),
+            ['MYRA_EMULATOR_LOG' => $this->log, 'MYRA_EMULATOR_STATE' => $this->state] + $env + self::environment(),
         );
         if (!is_resource($process)) {
             throw new RuntimeException('Cannot start the emulator.');
@@ -70,6 +73,9 @@ final class EmulatorServer
     public function reset(): void
     {
         file_put_contents($this->log, '');
+        if (is_file($this->state)) {
+            unlink($this->state);
+        }
     }
 
     public function stop(): void
@@ -78,8 +84,10 @@ final class EmulatorServer
             proc_terminate($this->process);
             proc_close($this->process);
         }
-        if (is_file($this->log)) {
-            unlink($this->log);
+        foreach ([$this->log, $this->state] as $file) {
+            if (is_file($file)) {
+                unlink($file);
+            }
         }
     }
 
