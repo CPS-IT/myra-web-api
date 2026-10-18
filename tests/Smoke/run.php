@@ -11,7 +11,7 @@ declare(strict_types=1);
  * Every version × auth combination through this package and the default Guzzle client.
  * It confirms what no local test can: HMAC against v2 (incl. a query string, `?page=2`),
  * Bearer against v1, and it records the raw answers to .cache/smoke/ — real data
- * (origin IPs!): anonymise before anything goes into docs/captures or tests/Fixtures.
+ * (origin IPs!): anonymise before anything goes into cpsit/myra-api-emulator (docs/captures, fixtures).
  */
 
 use GuzzleHttp\Client as Guzzle;

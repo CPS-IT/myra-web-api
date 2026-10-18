@@ -27,7 +27,7 @@
             <directory>tests</directory>
             <exclude>tests/Integration</exclude>
         </testsuite>
-        <!-- Real HTTP against tests/Emulator, started on a free local port by the tests. -->
+        <!-- Real HTTP against cpsit/myra-api-emulator, started on a free local port by the tests. -->
         <testsuite name="integration">
             <directory>tests/Integration</directory>
         </testsuite>

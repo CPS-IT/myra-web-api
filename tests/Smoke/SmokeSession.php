@@ -48,7 +48,7 @@ final class SmokeSession
                 throw new RuntimeException("Missing $file — run tests/Smoke/run.php first (it records the seed answers).");
             }
             $real = self::body(self::json($file));
-            $fake = self::body(self::json($root . '/tests/Fixtures/' . $fixture . '.json'));
+            $fake = self::body(self::json(\CPSIT\MyraApiEmulator\Paths::fixtures() . '/' . $fixture . '.json'));
             if (str_ends_with($fixture, 'domains/list') && is_array($real) && is_array($fake)) {
                 $realItems = $real['list'] ?? $real['data'] ?? [];
                 $fakeItems = $fake['list'] ?? $fake['data'] ?? [];

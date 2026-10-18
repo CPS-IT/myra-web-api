@@ -17,7 +17,7 @@ use Psr\Http\Message\ResponseInterface;
  *
  * v1 and v2 share one envelope: `{error, violationList, warningList, …}` plus the content
  * (v1 `list` / `targetObject`, v2 `data`). Every failure is HTTP 403 (rarely 401), so the
- * body decides, not the status (see docs/captures/README.md):
+ * body decides, not the status (see docs/captures in cpsit/myra-api-emulator):
  *
  * - envelope with `error: true`        → RequestRejectedException (violations)
  * - `error` is a string, HTTP 401/403 → AccessDeniedException (v2 without token, HTTP 401)

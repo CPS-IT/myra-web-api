@@ -12,7 +12,7 @@ Generated once, maintained by hand. Status per operation:
   `agents only` for Myra's own staff (spec), not offered
 
 Reads are captured with `tests/Smoke/capture.php` (GET only, anonymised in memory, leak-checked,
-staged in `.cache/captures/`, promoted to `docs/captures/` per area). First run 2026-10-16:
+staged in `.cache/captures/`, promoted to `docs/captures/` of cpsit/myra-api-emulator per area). First run 2026-10-16:
 112 requests, 100 written, 12 withheld (BIND: Myra's name server labels; one vhost value).
 
 Rules (docs/2.0-design.md): an area is implemented only after its reads are captured; writes

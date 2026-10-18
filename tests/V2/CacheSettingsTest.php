@@ -16,7 +16,7 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Generated from the captured fixtures (tests/Fixtures/v2/cachesettings); see docs/2.0-design.md, "Area pattern".
+ * Generated from the captured fixtures (fixtures/v2/cachesettings of cpsit/myra-api-emulator); see docs/2.0-design.md, "Area pattern".
  */
 #[CoversClass(V2\CacheSettings::class)]
 #[UsesClass(V2\SubdomainSettings::class)]

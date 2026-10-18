@@ -41,6 +41,7 @@
         }
     },
     "require-dev": {
+        "cpsit/myra-api-emulator": "^1.0",
         "friendsofphp/php-cs-fixer": "^3.95",
         "infection/infection": "^0.32.6",
         "phpstan/extension-installer": "^1.4",
@@ -71,5 +72,10 @@
     "scripts-descriptions": {
         "infection": "Mutation testing on Auth/Http/Exception (needs a coverage driver: `ddev xdebug on`)",
         "ci": "All gates except mutation testing"
-    }
+    },
+    "repositories": [{
+        "name": "myra-api-emulator",
+        "type": "vcs",
+        "url": "https://github.com/CPS-IT/myra-api-emulator"
+    }]
 }

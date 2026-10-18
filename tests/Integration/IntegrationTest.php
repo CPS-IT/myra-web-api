@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Myracloud\WebApi\Tests\Integration;
 
 use Closure;
+use CPSIT\MyraApiEmulator\Server;
 use DateTimeImmutable;
 use LogicException;
 use Myracloud\WebApi\Auth\Authentication;
@@ -31,18 +32,18 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Both clients over real HTTP — the default Guzzle client, real sockets, HMAC and token on
- * the wire — against the emulator (tests/Emulator), which answers with the captures and
+ * the wire — against the emulator (cpsit/myra-api-emulator), which answers with the captures and
  * checks authentication independently of this package. Pages of 2 make every list span
  * several requests.
  */
 #[CoversNothing]
 final class IntegrationTest extends TestCase
 {
-    private static ?EmulatorServer $server = null;
+    private static ?Server $server = null;
 
     public static function setUpBeforeClass(): void
     {
-        self::$server = new EmulatorServer(['MYRA_EMULATOR_PAGE_SIZE' => '2']);
+        self::$server = new Server(['MYRA_EMULATOR_PAGE_SIZE' => '2']);
     }
 
     public static function tearDownAfterClass(): void
@@ -515,7 +516,7 @@ final class IntegrationTest extends TestCase
         return $version === 'v1' ? new V1\Client($auth, baseUri: self::server()->baseUri()) : new V2\Client($auth, self::server()->baseUri());
     }
 
-    private static function server(): EmulatorServer
+    private static function server(): Server
     {
         return self::$server ?? throw new LogicException('The emulator is not running.');
     }

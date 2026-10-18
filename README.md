@@ -333,7 +333,10 @@ composer require cpsit/myra-web-api:^1.2
 ```bash
 composer ci                                   # validate, lint, cs, phpstan, dependency analyser, tests
 composer infection                            # mutation testing (needs a coverage driver)
-php -S 127.0.0.1:8080 tests/Emulator/index.php    # local Myra API emulator, v1 + v2
+php -S 127.0.0.1:8080 vendor/cpsit/myra-api-emulator/public/index.php   # local Myra API emulator, v1 + v2
 ```
 
-Design and decisions: [docs/2.0-design.md](docs/2.0-design.md). Captured API answers: [docs/captures](docs/captures).
+The tests run against [cpsit/myra-api-emulator](https://github.com/CPS-IT/myra-api-emulator), which also
+holds the captured API answers (`docs/captures`, `fixtures`).
+
+Design and decisions: [docs/2.0-design.md](docs/2.0-design.md).

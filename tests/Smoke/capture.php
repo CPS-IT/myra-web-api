@@ -12,7 +12,8 @@ declare(strict_types=1);
  * token, for every domain of the account; ids and vhost names are discovered from earlier
  * answers. Raw answers never touch the disk: each one is anonymised ({@see Anonymizer},
  * seeded from the existing fixtures via .cache/smoke) and leak-checked; only clean results
- * are written to .cache/captures/ for review before they are promoted to docs/captures.
+ * are written to .cache/captures/ for review before they are promoted to the docs/captures of
+ * cpsit/myra-api-emulator (and from there into its fixtures).
  * The output shows shapes (fields, counts, leak checks), never values.
  */
 
@@ -89,7 +90,7 @@ foreach ($seeds as [$smoke, $fixture]) {
         exit(2);
     }
     $real = responseBody(json($file));
-    $fake = responseBody(json($root . '/tests/Fixtures/' . $fixture . '.json'));
+    $fake = responseBody(json(\CPSIT\MyraApiEmulator\Paths::fixtures() . '/' . $fixture . '.json'));
     if (str_ends_with($fixture, 'domains/list') && is_array($real) && is_array($fake)) {
         $realItems = $real['list'] ?? $real['data'] ?? [];
         $fakeItems = $fake['list'] ?? $fake['data'] ?? [];

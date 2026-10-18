@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Myracloud\WebApi\Tests\Support;
 
+use CPSIT\MyraApiEmulator\Paths;
 use GuzzleHttp\Psr7\Response;
 use LogicException;
 
 /**
- * Real Myra answers (tests/Fixtures, copied from docs/captures): `request` as sent and
+ * Real Myra answers (the fixtures of cpsit/myra-api-emulator): `request` as sent and
  * `response` as received.
  */
 final class Fixture
@@ -20,7 +21,7 @@ final class Fixture
      */
     public static function load(string $name): array
     {
-        $file = __DIR__ . '/../Fixtures/' . $name . '.json';
+        $file = Paths::fixtures() . '/' . $name . '.json';
         $json = file_get_contents($file);
         if ($json === false) {
             throw new LogicException('Missing fixture ' . $file);
