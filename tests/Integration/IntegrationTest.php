@@ -14,6 +14,7 @@ use Myracloud\WebApi\Contract\Client;
 use Myracloud\WebApi\Exception\AccessDeniedException;
 use Myracloud\WebApi\Exception\DomainNotFoundException;
 use Myracloud\WebApi\Exception\RequestRejectedException;
+use Myracloud\WebApi\Exception\TransportException;
 use Myracloud\WebApi\Model\CacheSetting;
 use Myracloud\WebApi\Model\DnsRecord;
 use Myracloud\WebApi\Model\Domain;
@@ -477,38 +478,64 @@ final class IntegrationTest extends TestCase
     }
 
     /**
-     * A domain set up through the API, as in a fresh account: kept by the emulator, with its
-     * DNS records, and cleared within its zone only.
+     * A project's domains from an account file, as an admin set them up in Myra: listed,
+     * with their DNS records, and cleared within their zone only.
      *
      * @param Closure(): Authentication $auth
      */
     #[DataProvider('v2Clients')]
-    public function testKeepsACreatedDomainWithItsDnsRecords(Closure $auth): void
+    public function testAnAccountFileAddsTheDomainsOfAProject(Closure $auth): void
     {
-        $created = self::client('v2', $auth())->domains()->create('example.net');
-        $client = self::client('v2', $auth());
-        $record = $client->dnsRecords()->create('example.net', new DnsRecord('www.example.net', 'A', '192.0.2.20', active: true));
+        $account = (string) tempnam(sys_get_temp_dir(), 'myra-account-');
+        file_put_contents($account, json_encode(['domains' => [
+            ['name' => 'example.net', 'records' => ['www.example.net', ['name' => 'old.example.net', 'active' => false]]],
+        ]]));
+        $server = new EmulatorServer(['MYRA_EMULATOR_PAGE_SIZE' => '2', 'MYRA_EMULATOR_ACCOUNT' => $account]);
+        $client = new V2\Client($auth(), $server->baseUri());
 
-        self::assertSame([4711, 4712], [$created->id(), $record->id()]);
-        self::assertSame(['example.com', 'example.org', 'example.net'], array_map(static fn(Domain $d): string => $d->name(), $client->domains()->list()));
-        self::assertSame([['www.example.net', true]], array_map(static fn(DnsRecord $r): array => [$r->name(), $r->isActive()], $client->dnsRecords()->list('example.net')));
-        self::assertSame('www.example.net', $client->cacheClear()->clear('example.net', 'www.example.net', '/')[0]->fqdn());
-
-        foreach ([
-            'host outside the zone' => static fn() => $client->cacheClear()->clear('example.net', 'www.example.com', '/'),
-            'record outside the zone' => static fn() => $client->dnsRecords()->create('example.net', new DnsRecord('www.example.com', 'A', '192.0.2.21')),
-            'domain exists' => static fn() => $client->domains()->create('example.net'),
-        ] as $case => $rejected) {
+        try {
+            self::assertSame(['example.com' => 1000, 'example.org' => 1140, 'example.net' => 4711], array_column(array_map(static fn(Domain $d): array => [$d->name(), $d->id()], $client->domains()->list()), 1, 0));
+            self::assertSame([['www.example.net', true], ['old.example.net', false]], array_map(static fn(DnsRecord $r): array => [$r->name(), $r->isActive()], $client->dnsRecords()->list('example.net')));
+            self::assertSame('www.example.net', $client->cacheClear()->clear('example.net', 'www.example.net', '/')[0]->fqdn());
             try {
-                $rejected();
-                self::fail('No exception thrown: ' . $case);
-            } catch (RequestRejectedException) {
+                $client->cacheClear()->clear('example.net', 'www.example.com', '/');
+                self::fail('A host outside the zone was cleared.');
+            } catch (RequestRejectedException $exception) {
+                self::assertSame('DOMAIN_DOES_NOT_EXIST', $exception->violations()[0]->code());
             }
+        } finally {
+            $server->stop();
+            unlink($account);
+        }
+    }
+
+    /**
+     * The failure paths on demand: `reject` like wrong credentials, `down` like an outage.
+     *
+     * @param 'v1'|'v2' $version
+     * @param Closure(): Authentication $auth
+     */
+    #[DataProvider('clients')]
+    public function testTheModeRejectsOrTakesMyraDown(string $version, Closure $auth): void
+    {
+        $client = self::client($version, $auth());
+
+        self::server()->mode('reject');
+        try {
+            $client->domains()->list();
+            self::fail('Not rejected.');
+        } catch (AccessDeniedException) {
         }
 
-        $client->domains()->delete($created);
-        $this->expectException(DomainNotFoundException::class);
-        self::client('v2', $auth())->dnsRecords()->list('example.net');
+        self::server()->mode('down');
+        try {
+            $client->dnsRecords()->list('example.com');
+            self::fail('Not down.');
+        } catch (TransportException) {
+        }
+
+        self::server()->mode('normal');
+        self::assertNotSame([], $client->domains()->list());
     }
 
     /**

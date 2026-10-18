@@ -38,12 +38,12 @@ declare(strict_types=1);
  *   answers the quiet domain's captures, histogram charts other than total-* are unknown;
  * - subdomain settings: v2 settings of www.example.com are the v1 capture, `?flat` answers
  *   the apex (v1) or the probed vhost (v2) capture whatever the vhost; POST is echoed.
- * - domains created with v2 (POST /domains) are kept, with the DNS records created in them,
- *   in the state file: they appear in the domain list after the captured ones and in their
- *   DNS record list, and take cache clears — the zone check as for the captured domains.
- *   Ids count from 4711. Created objects take the captured shape of the first list entry.
- *   A name that exists, or a record outside its domain, is rejected with a violation (spec,
- *   not captured). Everything else of a created domain is not emulated; v1 does not see them.
+ * - an account file (MYRA_EMULATOR_ACCOUNT) adds the domains of a project, as an admin set
+ *   them up in Myra: v2 lists them after the captured ones (ids from 4711), lists their DNS
+ *   records and takes their cache clears, with the same zone check. Their objects take the
+ *   captured shape of the first list entry. Everything else of them is not emulated, and v1
+ *   does not see them.
+ * - the modes: `reject` answers every call like wrong credentials, `down` with HTTP 503.
  *
  * Authentication is checked independently of the package's own code: HMAC recomputed
  * after the v2 spec (docs/v2/openapi.json, info.description §2.1.2), or a Bearer token.
@@ -54,9 +54,14 @@ declare(strict_types=1);
  *   MYRA_EMULATOR_TOKEN                        Bearer token (test-token)
  *   MYRA_EMULATOR_PAGE_SIZE                    items per page (50, like Myra)
  *   MYRA_EMULATOR_LOG                          JSON-lines call log (sys_get_temp_dir()/myra-emulator.jsonl)
- *   MYRA_EMULATOR_STATE                        created domains and DNS records (sys_get_temp_dir()/myra-emulator-state.json)
+ *   MYRA_EMULATOR_ACCOUNT                      JSON file with the domains of a project (none):
+ *       {"domains": [{"name": "example.net", "records": ["example.net", "www.example.net"]}]}
+ *       a record is a name (an active A record) or a DnsRecordVO's fields, e.g.
+ *       {"name": "old.example.net", "active": false}
+ *   MYRA_EMULATOR_STATE                        runtime state: the mode (sys_get_temp_dir()/myra-emulator-state.json)
  *
- * Control (not logged): GET /_emulator/calls, POST /_emulator/reset.
+ * Control (not logged): GET /_emulator/calls, POST /_emulator/reset (calls and mode),
+ * GET|POST /_emulator/mode with {"mode": "normal"|"reject"|"down"}.
  */
 
 namespace Myracloud\WebApi\Tests\Emulator;
@@ -102,7 +107,7 @@ final readonly class Answer
      * The fixture's list, cut to one page.
      */
     /**
-     * @param list<array<string, mixed>> $more items after the fixture's (created objects)
+     * @param list<array<string, mixed>> $more items after the fixture's (the account's)
      */
     public static function page(string $name, string $key, int $page, array $more = []): self
     {
@@ -159,6 +164,8 @@ final class Emulator
     ];
     /** The emulated account: domain name → id, as in the fixtures. */
     private const DOMAINS = ['example.com' => 1000, 'example.org' => 1140];
+    /** normal; reject: every call answered like wrong credentials; down: HTTP 503. */
+    private const MODES = ['normal', 'reject', 'down'];
     /**
      * Areas configured per vhost: fixture directory, object type, captured lists by vhost
      * (vhosts not listed have none). Both v1 path names map here, and so do the v2 ones.
@@ -191,7 +198,13 @@ final class Emulator
         $v1 = preg_match('#^/([a-z]{2})/rapi(/.*)$#', $path, $m) === 1;
         $route = $v1 ? $m[2] : $path;
 
-        $denied = $this->authenticate($v1);
+        $mode = self::mode();
+        if ($mode === 'down') {
+            return new Answer(503, 'text/html', 'Service Unavailable');
+        }
+        $denied = $mode === 'reject'
+            ? Answer::fixture($v1 ? 'v1/errors/wrong-credentials' : 'v2/errors/wrong-credentials')
+            : $this->authenticate($v1);
         if ($denied !== null) {
             return $denied;
         }
@@ -291,7 +304,7 @@ final class Emulator
 
         return match (true) {
             $this->method === 'GET' && $route === '/domains'
-                => Answer::page('v2/domains/list', 'data', $page, array_column($this->state()['domains'], 'domain')),
+                => Answer::page('v2/domains/list', 'data', $page, array_column(self::account(), 'domain')),
             $this->method === 'POST' && $route === '/statistic/query'
                 => Answer::fixture('v2/statistics/query'),
             preg_match('#^/statistics/([a-z-]+)/\d+/\d+(/.*)?$#', $route, $m) === 1
@@ -303,9 +316,9 @@ final class Emulator
             $this->method !== 'GET' && preg_match('#^/(users|user|organization)(/|$)#', $route) === 1
                 => $this->userWrite($route),
             $this->method === 'POST' && $route === '/domains'
-                => $this->createDomain(),
+                => $this->written('DomainVO', 'data', null, 201),
             preg_match('#^/domains/(\d+)$#', $route, $m) === 1 && ($this->method === 'DELETE' || ($this->method === 'PUT' && in_array((int) $m[1], self::DOMAINS, true)))
-                => $this->method === 'DELETE' ? $this->deleteDomain((int) $m[1]) : $this->domainWritten('data', (int) $m[1]),
+                => $this->method === 'DELETE' ? new Answer(204, null, '') : $this->domainWritten('data', (int) $m[1]),
             $this->method === 'GET' && preg_match('#^/domains/(\d+)/(bind|bind-raw)/(Myra|Origin)$#', $route, $m) === 1 && in_array((int) $m[1], self::DOMAINS, true)
                 => Answer::fixture('v2/bind/' . ($m[2] === 'bind' ? 'zone-' : 'file-') . strtolower($m[3])),
             $this->method === 'GET' && $route === '/ssl-configurations'
@@ -370,21 +383,19 @@ final class Emulator
             return Answer::fixture('v2/errors/domain-name-instead-of-id');
         }
         $name = array_search((int) $id, self::DOMAINS, true);
-        $created = $name === false ? $this->createdDomain((int) $id) : null;
-        $name = $created['domain']['name'] ?? $name;
+        $configured = $name === false ? self::accountDomain((int) $id) : null;
+        $name = $configured['domain']['name'] ?? $name;
         if (!is_string($name)) {
             return Answer::fixture('v2/errors/unknown-domain-id');
         }
 
         return match (true) {
             $this->method === 'GET' && $area === 'dns-records' => match (true) {
-                $created !== null => Answer::page('v2/domains/page-2', 'data', $page, $created['records']),
+                $configured !== null => Answer::page('v2/domains/page-2', 'data', $page, $configured['records']),
                 $name === 'example.com' => Answer::page('v2/dns-records/list', 'data', $page),
                 default => Answer::page('v2/domains/page-2', 'data', 1),
             },
-            $this->method === 'POST' && $area === 'dns-records' => $created !== null
-                ? $this->createDnsRecord($name)
-                : $this->written('DnsRecordVO', 'data', null, 201),
+            $this->method === 'POST' && $area === 'dns-records' => $this->written('DnsRecordVO', 'data', null, 201),
             $this->method === 'PUT' && $area === 'cache-clear' => $this->cacheClear('v2', $name, 'data'),
             default => self::notEmulated($this->method, '/domain/' . $id . '/' . $area),
         };
@@ -513,88 +524,47 @@ final class Emulator
     }
 
     /**
-     * A v2 domain created and kept: the captured DomainVO with the sent name and settings.
+     * The domains of the account file, as Myra lists them: DomainVO and DnsRecordVOs in the
+     * captured shape, ids from 4711 in the order of the file.
+     *
+     * @return list<array{domain: array<string, mixed>, records: list<array<string, mixed>>}>
      */
-    private function createDomain(): Answer
+    private static function account(): array
     {
-        $data = json_decode($this->body, true);
-        $name = is_array($data) && is_string($data['name'] ?? null) ? strtolower(rtrim(trim($data['name']), '.')) : '';
-        if ($name === '') {
-            return Answer::fixture('v2/errors/malformed-body');
+        $file = self::env('MYRA_EMULATOR_ACCOUNT', '');
+        $json = $file !== '' && is_file($file) ? file_get_contents($file) : false;
+        $account = $json === false ? null : json_decode($json, true);
+        if ($file !== '' && !is_array($account)) {
+            throw new RuntimeException('Unreadable account file ' . $file);
         }
-        $state = $this->state();
-        if (isset(self::DOMAINS[$name]) || isset($state['domains'][$name])) {
-            return self::violation('name', 'The domain already exists.');
-        }
-        $domain = array_merge(self::captured('v2/domains/list'), self::stringKeys(array_intersect_key($data, ['autoUpdate' => true, 'autoDns' => true])), [
-            'id' => self::nextId($state),
-            'name' => $name,
-            'label' => $name,
-            'created' => '2026-10-16T12:00:00+0200',
-            'modified' => '2026-10-16T12:00:00+0200',
-        ]);
-        $state['domains'][$name] = ['domain' => $domain, 'records' => []];
-        $this->saveState($state);
 
-        $answer = Answer::success('data', [$domain]);
-
-        return new Answer(201, $answer->contentType, $answer->body);
-    }
-
-    private function deleteDomain(int $id): Answer
-    {
-        $state = $this->state();
-        foreach ($state['domains'] as $name => $created) {
-            if ($created['domain']['id'] === $id) {
-                unset($state['domains'][$name]);
-                $this->saveState($state);
+        $id = 4711;
+        $domains = [];
+        foreach (is_array($account) && is_array($account['domains'] ?? null) ? $account['domains'] : [] as $configured) {
+            $name = is_array($configured) && is_string($configured['name'] ?? null) ? strtolower($configured['name']) : '';
+            if ($name === '') {
+                continue;
             }
+            $domain = array_merge(self::captured('v2/domains/list'), ['id' => $id++, 'name' => $name, 'label' => $name]);
+            $records = [];
+            foreach (is_array($configured['records'] ?? null) ? $configured['records'] : [] as $record) {
+                $fields = is_string($record) ? ['name' => $record] : (is_array($record) ? self::stringKeys($record) : []);
+                $records[] = array_merge(self::captured('v2/dns-records/list'), ['recordType' => 'A', 'value' => '192.0.2.1', 'active' => true, 'enabled' => true], $fields, ['id' => $id++]);
+            }
+            $domains[] = ['domain' => $domain, 'records' => $records];
         }
 
-        return new Answer(204, null, '');
-    }
-
-    /**
-     * A DNS record kept in a created domain: the captured DnsRecordVO with the sent fields.
-     */
-    private function createDnsRecord(string $domain): Answer
-    {
-        $data = json_decode($this->body, true);
-        $name = is_array($data) && is_string($data['name'] ?? null) ? strtolower(rtrim($data['name'], '.')) : '';
-        if ($name === '') {
-            return Answer::fixture('v2/errors/malformed-body');
-        }
-        if ($name !== $domain && !str_ends_with($name, '.' . $domain)) {
-            return self::violation('name', 'The DNS record is not part of the domain.');
-        }
-        $state = $this->state();
-        $created = $state['domains'][$domain] ?? null;
-        if ($created === null) {
-            return Answer::fixture('v2/errors/unknown-domain-id');
-        }
-        $record = array_merge(self::captured('v2/dns-records/list'), self::stringKeys(array_diff_key($data, ['id' => true, 'modified' => true, 'created' => true])), [
-            'id' => self::nextId($state),
-            'name' => $name,
-            'created' => '2026-10-16T12:00:00+0200',
-            'modified' => '2026-10-16T12:00:00+0200',
-        ]);
-        $created['records'][] = $record;
-        $state['domains'][$domain] = $created;
-        $this->saveState($state);
-
-        $answer = Answer::success('data', [$record]);
-
-        return new Answer(201, $answer->contentType, $answer->body);
+        return $domains;
     }
 
     /**
      * @return array{domain: array<string, mixed>, records: list<array<string, mixed>>}|null
      */
-    private function createdDomain(int $id): ?array
+    private static function accountDomain(int $id): ?array
     {
-        foreach ($this->state()['domains'] as $created) {
-            if ($created['domain']['id'] === $id) {
-                return $created;
+        foreach (self::account() as $configured) {
+            if ($configured['domain']['id'] === $id) {
+                return $configured;
             }
         }
 
@@ -602,65 +572,7 @@ final class Emulator
     }
 
     /**
-     * @return array{domains: array<string, array{domain: array<string, mixed>, records: list<array<string, mixed>>}>}
-     */
-    private function state(): array
-    {
-        $file = self::stateFile();
-        $json = is_file($file) ? file_get_contents($file) : false;
-        $state = $json === false || $json === '' ? null : json_decode($json, true);
-
-        // Rebuilt, not trusted: a broken or foreign file is an empty state.
-        $domains = [];
-        foreach (is_array($state) && is_array($state['domains'] ?? null) ? $state['domains'] : [] as $name => $created) {
-            if (is_string($name) && is_array($created) && is_array($created['domain'] ?? null) && is_array($created['records'] ?? null)) {
-                $records = [];
-                foreach ($created['records'] as $record) {
-                    if (is_array($record)) {
-                        $records[] = self::stringKeys($record);
-                    }
-                }
-                $domains[$name] = ['domain' => self::stringKeys($created['domain']), 'records' => $records];
-            }
-        }
-
-        return ['domains' => $domains];
-    }
-
-    /**
-     * @param array{domains: array<string, array{domain: array<string, mixed>, records: list<array<string, mixed>>}>} $state
-     */
-    private function saveState(array $state): void
-    {
-        file_put_contents(self::stateFile(), json_encode($state, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
-    }
-
-    public static function stateFile(): string
-    {
-        return self::env('MYRA_EMULATOR_STATE', sys_get_temp_dir() . '/myra-emulator-state.json');
-    }
-
-    /**
-     * One id for domains and records, from 4711: after the highest one created.
-     *
-     * @param array{domains: array<string, array{domain: array<string, mixed>, records: list<array<string, mixed>>}>} $state
-     */
-    private static function nextId(array $state): int
-    {
-        $ids = [4710];
-        foreach ($state['domains'] as $created) {
-            foreach ([$created['domain'], ...$created['records']] as $object) {
-                if (is_int($object['id'] ?? null)) {
-                    $ids[] = $object['id'];
-                }
-            }
-        }
-
-        return max($ids) + 1;
-    }
-
-    /**
-     * The first entry of a captured list, as the shape of a created object.
+     * The first entry of a captured list, as the shape of a configured object.
      *
      * @return array<string, mixed>
      */
@@ -689,9 +601,31 @@ final class Emulator
         return $typed;
     }
 
-    private static function violation(string $propertyPath, string $message): Answer
+    /**
+     * `normal`, `reject` or `down`, from the runtime state.
+     */
+    public static function mode(): string
     {
-        return new Answer(400, 'application/json', ['error' => true, 'violationList' => [['propertyPath' => $propertyPath, 'message' => $message]], 'warningList' => []]);
+        $file = self::stateFile();
+        $json = is_file($file) ? file_get_contents($file) : false;
+        $state = $json === false ? null : json_decode($json, true);
+        $mode = is_array($state) ? ($state['mode'] ?? null) : null;
+
+        return is_string($mode) && in_array($mode, self::MODES, true) ? $mode : 'normal';
+    }
+
+    public static function setMode(string $mode): bool
+    {
+        if (!in_array($mode, self::MODES, true)) {
+            return false;
+        }
+
+        return file_put_contents(self::stateFile(), json_encode(['mode' => $mode]), LOCK_EX) !== false;
+    }
+
+    private static function stateFile(): string
+    {
+        return self::env('MYRA_EMULATOR_STATE', sys_get_temp_dir() . '/myra-emulator-state.json');
     }
 
     /**
@@ -893,7 +827,17 @@ if (str_starts_with($uri, '/_emulator/')) {
     header('Content-Type: application/json');
     if ($method === 'POST' && $uri === '/_emulator/reset') {
         file_put_contents($log, '');
+        Emulator::setMode('normal');
         echo '{"reset":true}';
+    } elseif ($uri === '/_emulator/mode') {
+        $requested = json_decode($body, true);
+        if ($method === 'POST' && !(is_array($requested) && is_string($requested['mode'] ?? null) && Emulator::setMode($requested['mode']))) {
+            http_response_code(400);
+            echo '{"error":"mode must be normal, reject or down"}';
+
+            return;
+        }
+        echo json_encode(['mode' => Emulator::mode()]);
     } else {
         $lines = is_file($log) ? (array) file($log, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : [];
         echo '[' . implode(',', $lines) . ']';

@@ -336,10 +336,10 @@ composer infection                            # mutation testing (needs a covera
 php -S 127.0.0.1:8080 tests/Emulator/index.php    # local Myra API emulator, v1 + v2
 ```
 
-The emulator answers from the captured fixtures (`example.com`, `example.org`). For a project of
-your own, set its domain up through the API, as in a fresh Myra account: domains created with
-v2 (`Domains::create()`) are kept with their DNS records (`DnsRecords::create()`, `active: true`
-to be cleared) in `MYRA_EMULATOR_STATE`, and take cache clears within their zone. Options and
-what is assumed: the header of [tests/Emulator/index.php](tests/Emulator/index.php).
+The emulator answers from the captured fixtures (`example.com`, `example.org`). A project adds its
+own domains with an account file (`MYRA_EMULATOR_ACCOUNT`): what an admin set up in Myra — domains
+and their DNS records, listed and cleared within their zone. `POST /_emulator/mode` switches to
+`reject` (wrong credentials) or `down` (HTTP 503) for the failure paths. Options and what is
+assumed: the header of [tests/Emulator/index.php](tests/Emulator/index.php).
 
 Design and decisions: [docs/2.0-design.md](docs/2.0-design.md). Captured API answers: [docs/captures](docs/captures).

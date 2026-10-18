@@ -26,7 +26,7 @@ final class EmulatorServer
         $this->baseUri = 'http://127.0.0.1:' . $port;
         $log = tempnam(sys_get_temp_dir(), 'myra-emulator-');
         $this->log = $log !== false ? $log : throw new RuntimeException('No temp file for the call log.');
-        // Created domains and DNS records; reset() forgets them, like the calls.
+        // The mode; reset() sets it back, like it empties the call log.
         $this->state = $this->log . '.state.json';
 
         $process = proc_open(
@@ -75,6 +75,21 @@ final class EmulatorServer
         file_put_contents($this->log, '');
         if (is_file($this->state)) {
             unlink($this->state);
+        }
+    }
+
+    /**
+     * Switches the mode through the control endpoint: normal, reject or down.
+     */
+    public function mode(string $mode): void
+    {
+        $answer = @file_get_contents($this->baseUri . '/_emulator/mode', false, stream_context_create(['http' => [
+            'method' => 'POST',
+            'header' => 'Content-Type: application/json',
+            'content' => json_encode(['mode' => $mode]),
+        ]]));
+        if ($answer === false) {
+            throw new RuntimeException('The emulator did not take the mode ' . $mode . '.');
         }
     }
 
